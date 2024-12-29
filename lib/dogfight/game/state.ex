@@ -40,6 +40,9 @@ defmodule Dogfight.Game.State do
 
   @max_players 5
   @max_bullets 5
+  @base_hp 5
+  @screen_width 800
+  @screen_height 600
 
   def new do
     %__MODULE__{
@@ -72,6 +75,37 @@ defmodule Dogfight.Game.State do
       },
       direction: :idle
     }
+  end
+
+  # TODO move to a map instead of the array, keepeing as-is for the first
+  # translation pass
+  @spec spawn_ship(t(), integer()) :: {:ok, t()} | {:error, :dismissed_ship}
+  def spawn_ship(game_state, index) do
+    if not Enum.at(game_state.players, index).alive do
+      {:error, :dimissed_ship}
+    else
+      # TODO fix this monstrosity
+      new_state = %{
+        game_state
+        | active_players: game_state.active_players + 1,
+          players:
+            Enum.with_index(game_state.players, fn
+              player, ^index ->
+                %{
+                  player
+                  | alive: true,
+                    hp: @base_hp,
+                    coord: %{x: :rand.uniform(@screen_width), y: :rand.uniform(@screen_height)},
+                    direction: :idle
+                }
+
+              other, _i ->
+                other
+            end)
+      }
+
+      {:ok, new_state}
+    end
   end
 
   @doc "Serialize a `Game.State` struct into a raw binary payload"
