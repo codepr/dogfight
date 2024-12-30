@@ -5,6 +5,8 @@ defmodule Dogfight.Game.State do
   based on the input of each one of the connected active players
   """
 
+  alias Dogfight.Encoding.Helpers, as: Encoding
+
   @type t :: %__MODULE__{
           players: [ship()],
           active_players: non_neg_integer(),
@@ -81,8 +83,8 @@ defmodule Dogfight.Game.State do
   # translation pass
   @spec spawn_ship(t(), integer()) :: {:ok, t()} | {:error, :dismissed_ship}
   def spawn_ship(game_state, index) do
-    if not Enum.at(game_state.players, index).alive do
-      {:error, :dimissed_ship}
+    if Enum.at(game_state.players, index).alive do
+      {:ok, game_state}
     else
       # TODO fix this monstrosity
       new_state = %{
@@ -108,11 +110,13 @@ defmodule Dogfight.Game.State do
     end
   end
 
-  @doc "Serialize a `Game.State` struct into a raw binary payload"
-  @spec serialize(t()) :: binary()
-  def serialize(game_state) do
+  @doc "Encode a `Game.State` struct into a raw binary payload"
+  @spec encode(t()) :: binary()
+  def encode(game_state) do
     binary_ships =
-      Enum.map(game_state.players, &serialize_ship/1) |> IO.iodata_to_binary()
+      game_state.players
+      |> Enum.map(&encode_ship/1)
+      |> IO.iodata_to_binary()
 
     powerup_kind = encode_powerup(game_state.powerup.kind)
 
@@ -120,38 +124,53 @@ defmodule Dogfight.Game.State do
 
     %{coord: %{x: powerup_x, y: powerup_y}} = game_state.powerup
 
-    <<integer_to_bin(total_length, 32)::binary,
-      integer_to_bin(game_state.player_index, 32)::binary,
-      integer_to_bin(game_state.active_players, 32)::binary,
-      integer_to_bin(powerup_x, 32)::binary, integer_to_bin(powerup_y, 32)::binary,
-      integer_to_bin(powerup_kind, 8)::binary, binary_ships::binary>>
+    Encoding.encode_list([
+      {total_length, :double_word},
+      {game_state.player_index, :double_word},
+      {game_state.active_players, :double_word},
+      {powerup_x, :double_word},
+      {powerup_y, :double_word},
+      {powerup_kind, :half_word},
+      {binary_ships, :binary}
+    ])
   end
 
-  defp serialize_ship(ship) do
+  defp encode_ship(ship) do
     direction = encode_direction(ship.direction)
 
     binary_bullets =
-      Enum.map(ship.bullets, &serialize_bullet/1) |> IO.iodata_to_binary()
+      ship.bullets
+      |> Enum.map(&encode_bullet/1)
+      |> IO.iodata_to_binary()
 
     %{x: x, y: y} = ship.coord
 
-    <<integer_to_bin(x, 32)::binary, integer_to_bin(y, 32)::binary,
-      integer_to_bin(ship.hp, 32)::binary, integer_to_bin(ship.alive, 8)::binary,
-      integer_to_bin(direction, 8)::binary, binary_bullets::binary>>
+    Encoding.encode_list([
+      {x, :double_word},
+      {y, :double_word},
+      {ship.hp, :double_word},
+      {if(ship.alive, do: 1, else: 0), :half_word},
+      {direction, :half_word},
+      {binary_bullets, :binary}
+    ])
   end
 
-  defp serialize_bullet(bullet) do
+  defp encode_bullet(bullet) do
     direction = encode_direction(bullet.direction)
 
     %{x: x, y: y} = bullet.coord
 
-    <<integer_to_bin(x, 32)::binary, integer_to_bin(y, 32)::binary,
-      integer_to_bin(bullet.active, 8)::binary, integer_to_bin(direction, 8)::binary>>
+    Encoding.encode_list([
+      {x, :double_word},
+      {y, :double_word},
+      {if(bullet.active, do: 1, else: 0), :half_word},
+      {direction, :half_word}
+    ])
   end
 
-  @doc "Deserialize a raw binary payload into a `Game.State` struct"
-  @spec deserialize!(binary()) :: t()
-  def deserialize!(binary) do
+  @doc "Decode a raw binary payload into a `Game.State` struct"
+  @spec decode!(binary()) :: t()
+  def decode!(binary) do
     <<_total_length::big-unsigned-integer-size(32), player_index::big-unsigned-integer-size(32),
       active_players::big-unsigned-integer-size(32), power_up_x::big-unsigned-integer-size(32),
       power_up_y::big-unsigned-integer-size(32), power_up_kind::big-unsigned-integer-size(8),
@@ -160,7 +179,7 @@ defmodule Dogfight.Game.State do
     players =
       players_blob
       |> chunk_bits(64)
-      |> Enum.map(&deserialize_ship!/1)
+      |> Enum.map(&decode_ship!/1)
 
     %__MODULE__{
       players: players,
@@ -173,7 +192,7 @@ defmodule Dogfight.Game.State do
     }
   end
 
-  defp deserialize_ship!(
+  defp decode_ship!(
          <<x::big-unsigned-integer-size(32), y::big-unsigned-integer-size(32),
            hp::big-unsigned-integer-size(32), alive::big-unsigned-integer-size(8),
            direction::big-unsigned-integer-size(8), bullets::binary>>
@@ -186,11 +205,11 @@ defmodule Dogfight.Game.State do
       bullets:
         bullets
         |> chunk_bits(10)
-        |> Enum.map(&deserialize_bullet!/1)
+        |> Enum.map(&decode_bullet!/1)
     }
   end
 
-  defp deserialize_bullet!(
+  defp decode_bullet!(
          <<x::big-unsigned-integer-size(32), y::big-unsigned-integer-size(32),
            active::big-unsigned-integer-size(8), direction::big-unsigned-integer-size(8)>>
        ) do
@@ -226,8 +245,4 @@ defmodule Dogfight.Game.State do
   defp decode_powerup(1), do: :hp_plus_one
   defp decode_powerup(2), do: :hp_plus_three
   defp decode_powerup(3), do: :ammo_plus_one
-
-  defp integer_to_bin(true, size), do: integer_to_bin(1, size)
-  defp integer_to_bin(false, size), do: integer_to_bin(0, size)
-  defp integer_to_bin(data, size) when is_integer(data), do: <<data::integer-size(size)>>
 end
