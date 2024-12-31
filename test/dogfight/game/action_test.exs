@@ -5,7 +5,7 @@ defmodule Dogfight.Game.ActionTest do
 
   describe "encode/1 / decode!/1" do
     test "generic behaviour" do
-      assert [:idle, :move_up, :move_down, :move_left, :move_right, :shoot]
+      assert [:idle, :up, :down, :left, :right, :shoot]
              |> Enum.map(&GameAction.encode/1)
              |> Enum.map(&GameAction.decode!/1)
              |> Enum.all?()

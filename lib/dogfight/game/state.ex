@@ -166,7 +166,7 @@ defmodule Dogfight.Game.State do
   @spec apply_action(t(), Game.Action.t(), non_neg_integer()) :: t()
   def apply_action(game_state, action, player_index) do
     case action do
-      direction when direction in [:move_up, :move_down, :move_left, :move_right] ->
+      direction when direction in [:up, :down, :left, :right] ->
         move_ship(game_state, player_index, direction)
 
       :shoot ->
@@ -178,20 +178,43 @@ defmodule Dogfight.Game.State do
   end
 
   defp move_ship(game_state, player_index, direction) do
+    player_coord = Enum.at(game_state.players, player_index).coord
+
+    player_coord = move_ship_coord(player_coord, direction)
+
+    ships =
+      Enum.with_index(game_state.players, fn
+        player, ^player_index ->
+          %{
+            player
+            | direction: direction,
+              coord: player_coord
+          }
+
+        other, _i ->
+          other
+      end)
+
     %{
       game_state
-      | players:
-          Enum.with_index(game_state.players, fn
-            player, ^player_index ->
-              %{
-                player
-                | direction: direction
-              }
-
-            other, _i ->
-              other
-          end)
+      | players: ships
     }
+  end
+
+  defp move_ship_coord(%{x: x, y: y}, direction) do
+    case direction do
+      :up ->
+        %{x: x, y: y - 3}
+
+      :down ->
+        %{x: x, y: y + 3}
+
+      :left ->
+        %{x: x - 3, y: y}
+
+      :right ->
+        %{x: x + 3, y: y}
+    end
   end
 
   defp shoot(game_state, player_index) do

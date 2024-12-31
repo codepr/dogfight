@@ -53,10 +53,10 @@ defmodule Dogfight.Game.StateTest do
         | players: Enum.map(game_state.players, fn player -> %{player | alive: true} end)
       }
 
-      action = :move_up
+      action = :up
 
       game_state = GameState.apply_action(game_state, action, 0)
-      assert Enum.at(game_state.players, 0).direction == :move_up
+      assert Enum.at(game_state.players, 0).direction == :up
     end
 
     test "applies a shoot action to a ship" do
@@ -82,7 +82,7 @@ defmodule Dogfight.Game.StateTest do
 
       game_state =
         game_state
-        |> GameState.apply_action(:move_down, 0)
+        |> GameState.apply_action(:down, 0)
         |> GameState.apply_action(:shoot, 0)
 
       game_state = GameState.update(game_state)
