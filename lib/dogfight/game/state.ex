@@ -6,6 +6,7 @@ defmodule Dogfight.Game.State do
   """
 
   alias Dogfight.Encoding.Helpers, as: Encoding
+  alias Dogfight.Game.Action
 
   @type t :: %__MODULE__{
           players: [ship()],
@@ -276,7 +277,7 @@ defmodule Dogfight.Game.State do
   end
 
   defp encode_ship(ship) do
-    direction = encode_direction(ship.direction)
+    direction = Action.encode_direction(ship.direction)
 
     binary_bullets =
       ship.bullets
@@ -296,7 +297,7 @@ defmodule Dogfight.Game.State do
   end
 
   defp encode_bullet(bullet) do
-    direction = encode_direction(bullet.direction)
+    direction = Action.encode_direction(bullet.direction)
 
     %{x: x, y: y} = bullet.coord
 
@@ -340,7 +341,7 @@ defmodule Dogfight.Game.State do
     %{
       coord: %{x: x, y: y},
       hp: hp,
-      direction: decode_direction(direction),
+      direction: Action.decode_direction(direction),
       alive: alive == 1,
       bullets:
         bullets
@@ -356,25 +357,13 @@ defmodule Dogfight.Game.State do
     %{
       coord: %{x: x, y: y},
       active: if(active == 0, do: false, else: true),
-      direction: decode_direction(direction)
+      direction: Action.decode_direction(direction)
     }
   end
 
   defp chunk_bits(binary, n) do
     for <<chunk::binary-size(n) <- binary>>, do: <<chunk::binary-size(n)>>
   end
-
-  defp encode_direction(:idle), do: 0
-  defp encode_direction(:up), do: 1
-  defp encode_direction(:down), do: 2
-  defp encode_direction(:left), do: 3
-  defp encode_direction(:right), do: 4
-
-  defp decode_direction(0), do: :idle
-  defp decode_direction(1), do: :up
-  defp decode_direction(2), do: :down
-  defp decode_direction(3), do: :left
-  defp decode_direction(4), do: :right
 
   defp encode_powerup(nil), do: 0
   defp encode_powerup(:hp_plus_one), do: 1

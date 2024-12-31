@@ -3,7 +3,8 @@ defmodule Dogfight.Game.Action do
 
   alias Dogfight.Encoding.Helpers, as: Encoding
 
-  @type t :: :up | :down | :left | :right | :shoot | :idle
+  @type direction :: :idle | :up | :down | :left | :right
+  @type t :: direction() | :shoot
 
   def encode(action) do
     total_length = 5
@@ -42,4 +43,16 @@ defmodule Dogfight.Game.Action do
       _ -> :idle
     end
   end
+
+  def encode_direction(:idle), do: 0
+  def encode_direction(:up), do: 1
+  def encode_direction(:down), do: 2
+  def encode_direction(:left), do: 3
+  def encode_direction(:right), do: 4
+
+  def decode_direction(0), do: :idle
+  def decode_direction(1), do: :up
+  def decode_direction(2), do: :down
+  def decode_direction(3), do: :left
+  def decode_direction(4), do: :right
 end
