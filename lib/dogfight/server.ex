@@ -20,21 +20,23 @@ defmodule Dogfight.Server do
 
   defp accept_loop(socket) do
     with {:ok, client_socket} <- :gen_tcp.accept(socket),
-         player_spec <- worker_spec(client_socket),
+         player_id <- Dogfight.IndexAgent.next_id(),
+         player_spec <- player_spec(client_socket, player_id),
          {:ok, pid} <- Horde.DynamicSupervisor.start_child(ClusterServiceSupervisor, player_spec) do
+      Logger.info("Player #{player_id} connected")
       Dogfight.Game.Server.register_player(pid)
       :gen_tcp.controlling_process(client_socket, pid)
     else
-      error -> IO.inspect(error)
+      error -> Logger.error("Failed to accept connection, reason: #{inspect(error)}")
     end
 
     accept_loop(socket)
   end
 
-  defp worker_spec(socket) do
+  defp player_spec(socket, player_id) do
     %{
       id: Dogfight.Player,
-      start: {Dogfight.Player, :start_link, [:player_id, socket]},
+      start: {Dogfight.Player, :start_link, [player_id, socket]},
       type: :worker,
       restart: :transient
     }

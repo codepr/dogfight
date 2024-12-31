@@ -43,4 +43,55 @@ defmodule Dogfight.Game.StateTest do
       assert spawned_ship.coord.y == 0
     end
   end
+
+  describe "apply_action/3" do
+    test "applies a move action to a ship" do
+      game_state = GameState.new()
+
+      game_state = %{
+        game_state
+        | players: Enum.map(game_state.players, fn player -> %{player | alive: true} end)
+      }
+
+      action = :move_up
+
+      game_state = GameState.apply_action(game_state, action, 0)
+      assert Enum.at(game_state.players, 0).direction == :move_up
+    end
+
+    test "applies a shoot action to a ship" do
+      game_state = GameState.new()
+
+      game_state = %{
+        game_state
+        | players: Enum.map(game_state.players, fn player -> %{player | alive: true} end)
+      }
+
+      action = :shoot
+
+      game_state = GameState.apply_action(game_state, action, 0)
+
+      [%{bullets: [first_bullet | _rest]} | _rest_players] = game_state.players
+      assert first_bullet == %{active: true, coord: %{x: 0, y: 0}, direction: :idle}
+    end
+  end
+
+  describe "update/1" do
+    test "updates all ships in the game state" do
+      {:ok, game_state} = GameState.new() |> GameState.spawn_ship(0)
+
+      game_state =
+        game_state
+        |> GameState.apply_action(:move_down, 0)
+        |> GameState.apply_action(:shoot, 0)
+
+      game_state = GameState.update(game_state)
+
+      [%{alive: alive, bullets: [first_bullet | _rest_bullets]} | _rest] =
+        game_state.players
+
+      assert alive
+      assert first_bullet.active
+    end
+  end
 end

@@ -3,6 +3,7 @@ defmodule Dogfight.Player do
   use GenServer
 
   alias Dogfight.Game.State, as: GameState
+  alias Dogfight.Game.Action, as: GameAction
 
   def start_link(player_id, socket) do
     GenServer.start_link(__MODULE__, {player_id, socket})
@@ -14,7 +15,8 @@ defmodule Dogfight.Player do
   end
 
   def handle_info({:tcp, _socket, data}, state) do
-    data |> GameState.decode!() |> IO.inspect()
+    action = GameAction.decode!(data)
+    Dogfight.Game.Server.apply_action(self(), action, state.player_id)
     {:noreply, state}
   end
 

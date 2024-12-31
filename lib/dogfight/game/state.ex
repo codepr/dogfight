@@ -110,6 +110,123 @@ defmodule Dogfight.Game.State do
     end
   end
 
+  @spec update(t()) :: t()
+  def update(game_state) do
+    %{game_state | players: update_ships(game_state.players)}
+  end
+
+  defp update_ships(players) do
+    Enum.map(players, &update_ship/1)
+  end
+
+  defp update_ship(%{alive: false} = ship), do: ship
+
+  defp update_ship(%{alive: true} = ship) do
+    bullets = Enum.map(ship.bullets, &update_bullet/1)
+
+    %{
+      ship
+      | bullets: bullets
+    }
+  end
+
+  defp update_bullet(%{active: false} = bullet), do: bullet
+
+  defp update_bullet(%{active: true} = bullet) do
+    case bullet.direction do
+      :up ->
+        %{
+          bullet
+          | coord: %{x: bullet.coord.x, y: bullet.coord.y + 1}
+        }
+
+      :down ->
+        %{
+          bullet
+          | coord: %{x: bullet.coord.x, y: bullet.coord.y - 1}
+        }
+
+      :left ->
+        %{
+          bullet
+          | coord: %{x: bullet.coord.x - 1, y: bullet.coord.y}
+        }
+
+      :right ->
+        %{
+          bullet
+          | coord: %{x: bullet.coord.x + 1, y: bullet.coord.y}
+        }
+
+      _ ->
+        bullet
+    end
+  end
+
+  @spec apply_action(t(), Game.Action.t(), non_neg_integer()) :: t()
+  def apply_action(game_state, action, player_index) do
+    case action do
+      direction when direction in [:move_up, :move_down, :move_left, :move_right] ->
+        move_ship(game_state, player_index, direction)
+
+      :shoot ->
+        shoot(game_state, player_index)
+
+      _ ->
+        game_state
+    end
+  end
+
+  defp move_ship(game_state, player_index, direction) do
+    %{
+      game_state
+      | players:
+          Enum.with_index(game_state.players, fn
+            player, ^player_index ->
+              %{
+                player
+                | direction: direction
+              }
+
+            other, _i ->
+              other
+          end)
+    }
+  end
+
+  defp shoot(game_state, player_index) do
+    %{
+      game_state
+      | players:
+          Enum.with_index(game_state.players, fn
+            player, ^player_index ->
+              bullets =
+                player.bullets
+                |> Enum.with_index(fn
+                  bullet, i ->
+                    if i == 0 && !bullet.active do
+                      %{
+                        bullet
+                        | active: true,
+                          coord: player.coord,
+                          direction: player.direction
+                      }
+                    else
+                      bullet
+                    end
+                end)
+
+              %{
+                player
+                | bullets: bullets
+              }
+
+            other, _i ->
+              other
+          end)
+    }
+  end
+
   @doc "Encode a `Game.State` struct into a raw binary payload"
   @spec encode(t()) :: binary()
   def encode(game_state) do

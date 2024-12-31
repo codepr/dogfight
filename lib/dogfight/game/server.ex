@@ -1,4 +1,5 @@
 defmodule Dogfight.Game.Server do
+  require Logger
   use GenServer
 
   alias Dogfight.Game.State, as: GameState
@@ -22,16 +23,21 @@ defmodule Dogfight.Game.Server do
     GenServer.cast(__MODULE__, :spawn_new_ship)
   end
 
+  def apply_action(pid, action, player_index) do
+    GenServer.cast(__MODULE__, {:apply_action, pid, action, player_index})
+  end
+
   defp schedule_tick() do
     Process.send_after(self(), :tick, @tick_rate)
   end
 
   @impl true
   def handle_info(:tick, state) do
-    new_state = update_game_state(state)
-    broadcast_game_state(new_state)
+    new_game_state = GameState.update(state.game_state)
+    updated_state = %{state | game_state: new_game_state}
+    broadcast_game_state(updated_state)
     schedule_tick()
-    {:noreply, new_state}
+    {:noreply, updated_state}
   end
 
   @impl true
@@ -51,16 +57,18 @@ defmodule Dogfight.Game.Server do
           game_state
 
         {:error, error} ->
-          IO.inspect(error)
+          Logger.error("Failed spawining ship, reason: #{inspect(error)}")
           state.game_state
       end
 
     {:noreply, %{state | game_state: game_state}}
   end
 
-  defp update_game_state(state) do
-    # TODO Update player positions, resolve collisions, etc.
-    state
+  def handle_cast({:apply_action, _pid, action, player_index}, state) do
+    game_state = GameState.apply_action(state.game_state, action, player_index)
+    updated_state = %{state | game_state: game_state}
+    broadcast_game_state(updated_state)
+    {:noreply, updated_state}
   end
 
   defp broadcast_game_state(state) do

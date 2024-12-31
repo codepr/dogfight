@@ -3,6 +3,8 @@ defmodule Dogfight.Game.Action do
 
   alias Dogfight.Encoding.Helpers, as: Encoding
 
+  @type t :: :move_up | :move_down | :move_left | :move_right | :shoot | :idle
+
   def encode(action) do
     total_length = 5
 
