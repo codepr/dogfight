@@ -15,6 +15,7 @@ defmodule Dogfight.Game.Action do
     ])
   end
 
+  # TODO remove total length
   def decode!(binary) do
     <<_total_length::big-unsigned-integer-size(32), action::big-unsigned-integer-size(8)>> =
       binary

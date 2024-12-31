@@ -46,6 +46,8 @@ defmodule Dogfight.Game.State do
   @base_hp 5
   @screen_width 800
   @screen_height 600
+  @bullet_byte_size 10
+  @ship_byte_size 64
 
   def new do
     %__MODULE__{
@@ -224,31 +226,25 @@ defmodule Dogfight.Game.State do
       | players:
           Enum.with_index(game_state.players, fn
             player, ^player_index ->
-              bullets =
-                player.bullets
-                |> Enum.with_index(fn
-                  bullet, i ->
-                    if i == 0 && !bullet.active do
-                      %{
-                        bullet
-                        | active: true,
-                          coord: player.coord,
-                          direction: player.direction
-                      }
-                    else
-                      bullet
-                    end
-                end)
+              bullets = update_bullets(player.bullets, player.direction)
 
-              %{
-                player
-                | bullets: bullets
-              }
+              %{player | bullets: bullets}
 
             other, _i ->
               other
           end)
     }
+  end
+
+  defp update_bullets(bullets, direction) do
+    Enum.map_reduce(bullets, false, fn
+      bullet, false when bullet.active == false ->
+        {%{bullet | active: true, direction: direction}, true}
+
+      bullet, updated ->
+        {bullet, updated}
+    end)
+    |> elem(0)
   end
 
   @doc "Encode a `Game.State` struct into a raw binary payload"
@@ -319,7 +315,7 @@ defmodule Dogfight.Game.State do
 
     players =
       players_blob
-      |> chunk_bits(64)
+      |> chunk_bits(@ship_byte_size)
       |> Enum.map(&decode_ship!/1)
 
     %__MODULE__{
@@ -345,7 +341,7 @@ defmodule Dogfight.Game.State do
       alive: alive == 1,
       bullets:
         bullets
-        |> chunk_bits(10)
+        |> chunk_bits(@bullet_byte_size)
         |> Enum.map(&decode_bullet!/1)
     }
   end

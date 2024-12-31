@@ -1,4 +1,9 @@
 defmodule Dogfight.Player do
+  @moduledoc """
+  This module represents a player in the Dogfight game. It handles the player's
+  connection, actions, and communication with the game server.
+  """
+
   require Logger
   use GenServer
 
@@ -36,11 +41,6 @@ defmodule Dogfight.Player do
   end
 
   defp send_game_update(socket, game_state) do
-    # TODO: Encode and send game state update to client
-    :gen_tcp.send(socket, encode_game_state(game_state))
-  end
-
-  defp encode_game_state(game_state) do
-    GameState.encode(game_state)
+    :gen_tcp.send(socket, GameState.encode(game_state))
   end
 end

@@ -93,5 +93,27 @@ defmodule Dogfight.Game.StateTest do
       assert alive
       assert first_bullet.active
     end
+
+    test "updates active bullets in the game state" do
+      {:ok, game_state} = GameState.new() |> GameState.spawn_ship(0)
+
+      game_state =
+        game_state
+        |> GameState.apply_action(:down, 0)
+        |> GameState.apply_action(:shoot, 0)
+
+      game_state =
+        game_state
+        |> GameState.update()
+        |> GameState.update()
+        |> GameState.update()
+
+      [%{alive: alive, bullets: [first_bullet | _rest_bullets]} | _rest] =
+        game_state.players
+
+      assert alive
+      assert first_bullet.active
+      assert first_bullet.coord.y == -3
+    end
   end
 end
