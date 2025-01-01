@@ -1,4 +1,10 @@
 defmodule Dogfight.Server do
+  @moduledoc """
+  Main entry point of the server, accepts connecting clients and defer their ownership
+  to the game server. Each connected client is handled by a `GenServer`, the `Dogfight.Player`.
+  The `Dogfight.Game.Server` governs the main logic of an instantiated game and broadcasts updates
+  to each registered player.
+  """
   require Logger
 
   alias Dogfight.ClusterServiceSupervisor

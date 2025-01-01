@@ -48,7 +48,6 @@ defmodule Dogfight.Game.State do
   @screen_height 600
   @bullet_byte_size 10
   @ship_byte_size 64
-  @top_bullet_speed 15
 
   def new do
     %__MODULE__{

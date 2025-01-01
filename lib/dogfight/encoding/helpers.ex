@@ -2,7 +2,8 @@ defmodule Dogfight.Encoding.Helpers do
   @moduledoc """
   This module provides helper functions for encoding data into binary format.
 
-  The module supports encoding integers of various sizes (half word, word, double word, quad word) and binary data.
+  The module supports encoding integers of various sizes (half word, word,
+  double word, quad word) and binary data.
   """
 
   @half_word 8
@@ -16,7 +17,8 @@ defmodule Dogfight.Encoding.Helpers do
   @doc """
   Encodes a list of fields into a binary.
 
-  Each field is a tuple containing an integer and a word size. The word size determines the number of bits used to encode the integer.
+  Each field is a tuple containing an integer and a word size. The word size
+  determines the number of bits used to encode the integer.
 
   ## Parameters
 

@@ -1,4 +1,9 @@
 defmodule Dogfight.Game.Server do
+  @moduledoc """
+  Represents a game server for the Dogfight game. It handles the game state and
+  player actions. It is intended as the main source of thruth for each instantiated game,
+  broadcasting the game state to each connected player every `@tick` milliseconds.
+  """
   require Logger
   use GenServer
 
@@ -64,6 +69,7 @@ defmodule Dogfight.Game.Server do
     {:noreply, %{state | game_state: game_state}}
   end
 
+  @impl true
   def handle_cast({:apply_action, _pid, action, player_index}, state) do
     game_state = GameState.apply_action(state.game_state, action, player_index)
     updated_state = %{state | game_state: game_state}
