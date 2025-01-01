@@ -9,7 +9,7 @@ defmodule Dogfight.Game.Server do
 
   alias Dogfight.Game.State, as: GameState
 
-  @tick_rate 50
+  @tick_rate_ms 50
 
   def start_link(_) do
     GenServer.start_link(__MODULE__, %{}, name: __MODULE__)
@@ -19,13 +19,12 @@ defmodule Dogfight.Game.Server do
   def init(_) do
     game_state = GameState.new()
     schedule_tick()
-    # TODO placeholder, put GameState here
     {:ok, %{players: [], game_state: game_state}}
   end
 
-  def register_player(pid) do
+  def register_player(pid, player_id) do
     GenServer.call(__MODULE__, {:register_player, pid})
-    GenServer.cast(__MODULE__, :spawn_new_ship)
+    GenServer.cast(__MODULE__, {:spawn_new_ship, player_id})
   end
 
   def apply_action(pid, action, player_index) do
@@ -33,7 +32,7 @@ defmodule Dogfight.Game.Server do
   end
 
   defp schedule_tick() do
-    Process.send_after(self(), :tick, @tick_rate)
+    Process.send_after(self(), :tick, @tick_rate_ms)
   end
 
   @impl true
@@ -54,9 +53,9 @@ defmodule Dogfight.Game.Server do
   end
 
   @impl true
-  def handle_cast(:spawn_new_ship, state) do
+  def handle_cast({:spawn_new_ship, player_id}, state) do
     game_state =
-      case GameState.spawn_ship(state.game_state, 0) do
+      case GameState.spawn_ship(state.game_state, player_id) do
         {:ok, game_state} ->
           broadcast_game_state(%{state | game_state: game_state})
           game_state
