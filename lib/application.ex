@@ -45,7 +45,7 @@ defmodule Dogfight.Application do
       game_state_nodes: [
         strategy: Cluster.Strategy.Epmd,
         config: [
-          hosts: [:"app@n1.dev"]
+          hosts: [:"app@n1.dev", :"app@n2.dev", :"app@n3.dev"]
         ]
       ]
     ]
