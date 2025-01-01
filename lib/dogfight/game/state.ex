@@ -48,6 +48,7 @@ defmodule Dogfight.Game.State do
   @screen_height 600
   @bullet_byte_size 10
   @ship_byte_size 64
+  @top_bullet_speed 15
 
   def new do
     %__MODULE__{
@@ -101,7 +102,7 @@ defmodule Dogfight.Game.State do
                   | alive: true,
                     hp: @base_hp,
                     coord: %{x: :rand.uniform(@screen_width), y: :rand.uniform(@screen_height)},
-                    direction: :idle
+                    direction: :up
                 }
 
               other, _i ->
@@ -140,25 +141,25 @@ defmodule Dogfight.Game.State do
       :up ->
         %{
           bullet
-          | coord: %{x: bullet.coord.x, y: bullet.coord.y + 1}
+          | coord: %{x: bullet.coord.x, y: bullet.coord.y - 6}
         }
 
       :down ->
         %{
           bullet
-          | coord: %{x: bullet.coord.x, y: bullet.coord.y - 1}
+          | coord: %{x: bullet.coord.x, y: bullet.coord.y + 6}
         }
 
       :left ->
         %{
           bullet
-          | coord: %{x: bullet.coord.x - 1, y: bullet.coord.y}
+          | coord: %{x: bullet.coord.x - 6, y: bullet.coord.y}
         }
 
       :right ->
         %{
           bullet
-          | coord: %{x: bullet.coord.x + 1, y: bullet.coord.y}
+          | coord: %{x: bullet.coord.x + 6, y: bullet.coord.y}
         }
 
       _ ->
@@ -226,7 +227,7 @@ defmodule Dogfight.Game.State do
       | players:
           Enum.with_index(game_state.players, fn
             player, ^player_index ->
-              bullets = update_bullets(player.bullets, player.direction)
+              bullets = update_bullets(player.bullets, player)
 
               %{player | bullets: bullets}
 
@@ -236,10 +237,15 @@ defmodule Dogfight.Game.State do
     }
   end
 
-  defp update_bullets(bullets, direction) do
+  defp update_bullets(bullets, player) do
     Enum.map_reduce(bullets, false, fn
       bullet, false when bullet.active == false ->
-        {%{bullet | active: true, direction: direction}, true}
+        {%{
+           bullet
+           | active: true,
+             direction: player.direction,
+             coord: %{x: player.coord.x, y: player.coord.y}
+         }, true}
 
       bullet, updated ->
         {bullet, updated}

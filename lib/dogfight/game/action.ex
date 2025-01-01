@@ -25,23 +25,15 @@ defmodule Dogfight.Game.Action do
 
   defp action_to_int(action) do
     case action do
-      :up -> 1
-      :down -> 2
-      :left -> 3
-      :right -> 4
       :shoot -> 5
-      _ -> 0
+      direction -> encode_direction(direction)
     end
   end
 
   defp int_to_action(intval) do
     case intval do
-      1 -> :up
-      2 -> :down
-      3 -> :left
-      4 -> :right
       5 -> :shoot
-      _ -> :idle
+      direction -> decode_direction(direction)
     end
   end
 
