@@ -102,6 +102,9 @@ defmodule Dogfight.Game.StateTest do
         |> GameState.apply_action(:down, 0)
         |> GameState.apply_action(:shoot, 0)
 
+      [%{bullets: [%{coord: %{y: origin_y}} | _rest_bullets]} | _rest_players] =
+        game_state.players
+
       game_state =
         game_state
         |> GameState.update()
@@ -113,7 +116,7 @@ defmodule Dogfight.Game.StateTest do
 
       assert alive
       assert first_bullet.active
-      assert first_bullet.coord.y == -3
+      assert first_bullet.coord.y == origin_y + 18
     end
   end
 end
