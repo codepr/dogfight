@@ -1,17 +1,17 @@
 # The directory Mix will write compiled artifacts to.
-/_build/
+server/_build/
 
 # If you run "mix test --cover", coverage assets end up here.
-/cover/
+server/cover/
 
 # The directory Mix downloads your dependencies sources to.
-/deps/
+server/deps/
 
 # Where third-party dependencies like ExDoc output generated docs.
-/doc/
+server/doc/
 
 # Ignore .fetch files in case you like to edit your project deps locally.
-/.fetch
+server/.fetch
 
 # If the VM crashes, it generates a dump, let's ignore it too.
 erl_crash.dump
@@ -23,6 +23,20 @@ erl_crash.dump
 metex-*.tar
 
 # Temporary files, for example, from tests.
-/tmp/
+server/tmp/
 
-rel/
+server/rel/
+
+# Zig specific
+#
+client/.zig-cache/
+client/zig-out/
+client/release/
+client/debug/
+client/build/
+client/build-*/
+client/docgen_tmp/
+
+# Although this was renamed to .zig-cache, let's leave it here for a few
+# releases to make it less annoying to work with multiple branches.
+client/zig-cache/
