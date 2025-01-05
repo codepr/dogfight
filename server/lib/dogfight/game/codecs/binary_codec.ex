@@ -1,7 +1,9 @@
 defmodule Dogfight.Game.Codecs.BinaryCodec do
   @moduledoc """
   Binary implementation of the game econding and decoding logic
+
   Handles
+
   - Game state
   - Game event
   """
@@ -12,11 +14,11 @@ defmodule Dogfight.Game.Codecs.BinaryCodec do
   alias Dogfight.Game.State
   alias Dogfight.Game.Vec2
 
-  @power_up_byte_size Helpers.double_word_byte_size() * 2 + Helpers.half_word_byte_size()
-  @bullet_byte_size Helpers.double_word_byte_size() * 2 + Helpers.half_word_byte_size() * 2
-  @player_id_byte_size Helpers.double_word_byte_size()
-  @spaceship_byte_size @player_id_byte_size + 5 * @bullet_byte_size +
-                         3 * Helpers.double_word_byte_size() + 2 * Helpers.half_word_byte_size()
+  @power_up_size Helpers.double_word_size() * 2 + Helpers.half_word_size()
+  @bullet_size Helpers.double_word_size() * 2 + Helpers.half_word_size() * 2
+  @player_id_size Helpers.word_size()
+  @spaceship_size @player_id_size + 5 * @bullet_size +
+                    3 * Helpers.double_word_size() + 2 * Helpers.half_word_size()
 
   @impl true
   def encode_event(event) do
@@ -44,13 +46,13 @@ defmodule Dogfight.Game.Codecs.BinaryCodec do
 
     case action do
       :move ->
-        <<direction::big-integer-size(8), player_id::binary-size(@player_id_byte_size)>> =
+        <<direction::big-integer-size(8), player_id::binary-size(@player_id_size)>> =
           rest
 
         {:ok, {action, player_id, decode_direction(direction)}}
 
       :shoot ->
-        <<player_id::binary-size(@player_id_byte_size)>> = rest
+        <<player_id::binary-size(@player_id_size)>> = rest
 
         {:ok, {action, player_id}}
     end
@@ -95,9 +97,9 @@ defmodule Dogfight.Game.Codecs.BinaryCodec do
       binary_ships_byte_size +
         binary_power_ups_byte_size +
         binary_status_byte_size +
-        Helpers.double_word_byte_size() +
-        Helpers.half_word_byte_size() +
-        Helpers.word_byte_size()
+        Helpers.double_word_size() +
+        Helpers.half_word_size() +
+        Helpers.word_size()
 
     Helpers.encode_list([
       {total_length, :double_word},
@@ -166,12 +168,12 @@ defmodule Dogfight.Game.Codecs.BinaryCodec do
 
     power_ups =
       power_ups_bin
-      |> chunk_bits(@power_up_byte_size)
+      |> chunk_bits(@power_up_size)
       |> Enum.map(&decode_power_up!/1)
 
     players =
       player_records
-      |> chunk_bits(@spaceship_byte_size)
+      |> chunk_bits(@spaceship_size)
       |> Enum.map(&decode_spaceship!/1)
       |> Map.new()
 
@@ -196,7 +198,7 @@ defmodule Dogfight.Game.Codecs.BinaryCodec do
   defp decode_spaceship!(
          <<x::big-integer-size(32), y::big-integer-size(32), hp::big-integer-size(32),
            alive::big-integer-size(8), direction::big-integer-size(8),
-           player_id::binary-size(@player_id_byte_size), bullets::binary>>
+           player_id::binary-size(@player_id_size), bullets::binary>>
        ) do
     {player_id,
      %{
@@ -206,7 +208,7 @@ defmodule Dogfight.Game.Codecs.BinaryCodec do
        alive?: alive == 1,
        bullets:
          bullets
-         |> chunk_bits(@bullet_byte_size)
+         |> chunk_bits(@bullet_size)
          |> Enum.map(&decode_bullet!/1)
      }}
   end

@@ -24,11 +24,11 @@ defmodule Dogfight.Game.Server do
 
   def register_player(pid, player_id) do
     GenServer.call(__MODULE__, {:register_player, pid})
-    GenServer.cast(__MODULE__, {:spawn_new_ship, player_id})
+    GenServer.cast(__MODULE__, {:add_player, player_id})
   end
 
-  def apply_action(pid, action, player_index) do
-    GenServer.cast(__MODULE__, {:apply_action, pid, action, player_index})
+  def apply_event(pid, event) do
+    GenServer.cast(__MODULE__, {:apply_event, pid, event})
   end
 
   defp schedule_tick() do
@@ -53,9 +53,9 @@ defmodule Dogfight.Game.Server do
   end
 
   @impl true
-  def handle_cast({:spawn_new_ship, player_id}, state) do
+  def handle_cast({:add_player, player_id}, state) do
     game_state =
-      case GameState.spawn_ship(state.game_state, player_id) do
+      case GameState.add_player(state.game_state, player_id) do
         {:ok, game_state} ->
           broadcast_game_state(%{state | game_state: game_state})
           game_state
@@ -69,8 +69,8 @@ defmodule Dogfight.Game.Server do
   end
 
   @impl true
-  def handle_cast({:apply_action, _pid, action, player_index}, state) do
-    game_state = GameState.apply_action(state.game_state, action, player_index)
+  def handle_cast({:apply_event, _pid, event}, state) do
+    game_state = GameState.apply_event(state.game_state, event)
     updated_state = %{state | game_state: game_state}
     broadcast_game_state(updated_state)
     {:noreply, updated_state}

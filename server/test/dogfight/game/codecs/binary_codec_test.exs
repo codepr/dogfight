@@ -22,7 +22,7 @@ defmodule Dogfight.Game.Codecs.BinaryCodecTest do
 
   describe "encode_event/1 / decode_event/1" do
     test "generic behaviour" do
-      event = {:move, "a-thirty-two-bytes-long-playerid", :up}
+      event = {:move, "a-16-b-player-id", :up}
 
       assert event
              |> BinaryCodec.encode_event()
