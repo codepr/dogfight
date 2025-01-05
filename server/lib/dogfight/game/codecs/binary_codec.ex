@@ -151,7 +151,7 @@ defmodule Dogfight.Game.Codecs.BinaryCodec do
      %State{
        players: players,
        power_ups: power_ups,
-       status: status
+       status: String.to_existing_atom(status)
      }}
   rescue
     # TODO add custom errors

@@ -106,7 +106,7 @@ defmodule Dogfight.Game.DefaultSpaceship do
     bullets =
       spaceship.bullets
       |> Enum.map_reduce(false, fn
-        bullet, false when bullet.active == false ->
+        bullet, false when bullet.active? == false ->
           {%{
              bullet
              | active?: true,
