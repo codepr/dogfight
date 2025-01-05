@@ -16,7 +16,8 @@ defmodule Dogfight.Game.Codecs.BinaryCodec do
 
   @power_up_size Helpers.double_word_size() * 2 + Helpers.half_word_size()
   @bullet_size Helpers.double_word_size() * 2 + Helpers.half_word_size() * 2
-  @player_id_size Helpers.word_size()
+  # (32 bytes and 4 hyphens as per UUID)
+  @player_id_size Helpers.double_word_size() + 4
   @spaceship_size @player_id_size + 5 * @bullet_size +
                     3 * Helpers.double_word_size() + 2 * Helpers.half_word_size()
 

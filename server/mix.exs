@@ -24,7 +24,8 @@ defmodule Dogfight.MixProject do
   defp deps do
     [
       {:libcluster, "~> 3.3"},
-      {:horde, "~> 0.9"}
+      {:horde, "~> 0.9"},
+      {:uuid, "~> 1.1"}
     ]
   end
 

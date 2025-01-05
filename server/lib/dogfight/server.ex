@@ -29,7 +29,7 @@ defmodule Dogfight.Server do
 
   defp accept_loop(socket) do
     with {:ok, client_socket} <- :gen_tcp.accept(socket),
-         player_id <- Dogfight.IndexAgent.next_id(),
+         player_id <- UUID.uuid4(),
          player_spec <- player_spec(client_socket, player_id),
          {:ok, pid} <- Horde.DynamicSupervisor.start_child(ClusterServiceSupervisor, player_spec) do
       Logger.info("Player #{player_id} connected")
