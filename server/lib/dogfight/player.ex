@@ -7,8 +7,7 @@ defmodule Dogfight.Player do
   require Logger
   use GenServer
 
-  alias Dogfight.Game.State, as: GameState
-  alias Dogfight.Game.Action, as: GameAction
+  alias Dogfight.Game.Codecs.BinaryCodec
 
   def start_link(player_id, socket) do
     GenServer.start_link(__MODULE__, {player_id, socket})
@@ -20,8 +19,12 @@ defmodule Dogfight.Player do
   end
 
   def handle_info({:tcp, _socket, data}, state) do
-    action = GameAction.decode!(data)
-    Dogfight.Game.Server.apply_action(self(), action, state.player_id)
+    with {:ok, event} <- BinaryCodec.decode_event(data) do
+      Dogfight.Game.EventHandler.apply_event(self(), event)
+    else
+      {:ok, :codec_error} -> Logger.error("Decode failed, unknown event")
+    end
+
     {:noreply, state}
   end
 
@@ -41,6 +44,6 @@ defmodule Dogfight.Player do
   end
 
   defp send_game_update(socket, game_state) do
-    :gen_tcp.send(socket, GameState.encode(game_state))
+    :gen_tcp.send(socket, BinaryCodec.encode(game_state))
   end
 end

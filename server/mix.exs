@@ -7,7 +7,8 @@ defmodule Dogfight.MixProject do
       version: "0.1.0",
       elixir: "~> 1.17",
       start_permanent: Mix.env() == :prod,
-      deps: deps()
+      deps: deps(),
+      aliases: aliases()
     ]
   end
 
@@ -23,7 +24,15 @@ defmodule Dogfight.MixProject do
   defp deps do
     [
       {:libcluster, "~> 3.3"},
-      {:horde, "~> 0.9"}
+      {:horde, "~> 0.9"},
+      {:uuid, "~> 1.1"}
+    ]
+  end
+
+  defp aliases do
+    [
+      # (2)
+      test: "test --no-start"
     ]
   end
 end

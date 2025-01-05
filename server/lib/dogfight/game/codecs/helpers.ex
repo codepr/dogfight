@@ -1,4 +1,4 @@
-defmodule Dogfight.Encoding.Helpers do
+defmodule Dogfight.Game.Codecs.Helpers do
   @moduledoc """
   This module provides helper functions for encoding data into binary format.
 
@@ -30,7 +30,7 @@ defmodule Dogfight.Encoding.Helpers do
 
   ## Examples
 
-      iex> Dogfight.Encoding.Helpers.encode_list([{1, :half_word}, {2, :word}])
+      iex> Dogfight.Game.Codecs.Helpers.encode_list([{1, :half_word}, {2, :word}])
       <<1::8, 2::16>>
   """
   @spec encode_list([field(), ...]) :: binary()
@@ -56,4 +56,9 @@ defmodule Dogfight.Encoding.Helpers do
   def encode_integer(true, size), do: encode_integer(1, size)
   def encode_integer(false, size), do: encode_integer(0, size)
   def encode_integer(data, size) when is_integer(data), do: <<data::integer-size(size)>>
+
+  def half_word_size, do: @half_word
+  def word_size, do: @word
+  def double_word_size, do: @double_word
+  def quad_word_size, do: @quad_word
 end

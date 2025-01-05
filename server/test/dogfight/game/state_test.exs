@@ -1,29 +1,19 @@
 defmodule Dogfight.Game.StateTest do
   @moduledoc false
   use ExUnit.Case
+  alias Dogfight.Game.Event, as: GameEvent
   alias Dogfight.Game.State, as: GameState
 
-  describe "encode/1 / decode!/1" do
-    test "generic behaviour" do
+  describe "add_player/2" do
+    test "generate a random spaceship in the game state for a new player" do
       game_state = GameState.new()
 
-      assert game_state
-             |> GameState.encode()
-             |> GameState.decode!() == game_state
-    end
-  end
+      assert {:ok, update_state} = GameState.add_player(game_state, "id")
 
-  describe "spawn_ship/2" do
-    test "generate a random ship in the game state" do
-      game_state = GameState.new()
-
-      assert {:ok, update_state} = GameState.spawn_ship(game_state, 1)
-      assert update_state.active_players == 1
-
-      spawned_ship = Enum.at(update_state.players, 1)
+      spawned_ship = Map.fetch!(update_state.players, "id")
       assert spawned_ship.hp == 5
-      assert spawned_ship.coord.x != 0
-      assert spawned_ship.coord.y != 0
+      assert spawned_ship.position.x != 0
+      assert spawned_ship.position.y != 0
     end
 
     test "if already alive, returns the game state unaltered" do
@@ -31,92 +21,107 @@ defmodule Dogfight.Game.StateTest do
 
       game_state = %{
         game_state
-        | players: Enum.map(game_state.players, fn player -> %{player | alive: true} end)
+        | players: %{"id" => %{alive?: true, hp: 0, position: %{x: 5, y: 5}}}
       }
 
-      assert {:ok, update_state} = GameState.spawn_ship(game_state, 1)
-      assert update_state.active_players == 0
+      assert {:ok, update_state} = GameState.add_player(game_state, "id")
 
-      spawned_ship = Enum.at(update_state.players, 1)
+      spawned_ship = Map.fetch!(update_state.players, "id")
       assert spawned_ship.hp == 0
-      assert spawned_ship.coord.x == 0
-      assert spawned_ship.coord.y == 0
+      assert spawned_ship.position.x == 5
+      assert spawned_ship.position.y == 5
+    end
+
+    test "if already exits but not alive, returns an error" do
+      game_state = GameState.new()
+
+      game_state = %{game_state | players: %{"id" => %{alive?: false}}}
+
+      assert {:error, :dismissed_ship} = GameState.add_player(game_state, "id")
     end
   end
 
-  describe "apply_action/3" do
-    test "applies a move action to a ship" do
-      game_state = GameState.new()
+  describe "apply_event/2" do
+    test "applies a move action to a spaceship" do
+      move_event = GameEvent.move("player_id", :up)
 
-      game_state = %{
-        game_state
-        | players: Enum.map(game_state.players, fn player -> %{player | alive: true} end)
-      }
+      {:ok, game_state} = GameState.new() |> GameState.add_player("player_id")
 
-      action = :up
+      assert {:ok, game_state} = GameState.apply_event(game_state, move_event)
 
-      game_state = GameState.apply_action(game_state, action, 0)
-      assert Enum.at(game_state.players, 0).direction == :up
+      assert game_state.players["player_id"].direction == :up
     end
 
     test "applies a shoot action to a ship" do
-      game_state = GameState.new()
+      shoot_event = GameEvent.shoot("player_id")
 
-      game_state = %{
-        game_state
-        | players: Enum.map(game_state.players, fn player -> %{player | alive: true} end)
-      }
+      {:ok, game_state} = GameState.new() |> GameState.add_player("player_id")
+      {:ok, game_state} = GameState.apply_event(game_state, shoot_event)
 
-      action = :shoot
+      %{bullets: [first_bullet | _rest]} = game_state.players["player_id"]
 
-      game_state = GameState.apply_action(game_state, action, 0)
+      assert %Dogfight.Game.DefaultSpaceship.Bullet{
+               active?: true,
+               position: _position,
+               direction: :idle
+             } = first_bullet
+    end
 
-      [%{bullets: [first_bullet | _rest]} | _rest_players] = game_state.players
-      assert first_bullet == %{active: true, coord: %{x: 0, y: 0}, direction: :idle}
+    test "errors when no player is found" do
+      {:ok, game_state} = GameState.new() |> GameState.add_player("player_id")
+
+      assert {:error, :dismissed_ship} =
+               GameState.apply_event(game_state, GameEvent.move("player_id-2", :down))
     end
   end
 
   describe "update/1" do
     test "updates all ships in the game state" do
-      {:ok, game_state} = GameState.new() |> GameState.spawn_ship(0)
+      player_id = "player_id"
+      {:ok, game_state} = GameState.new() |> GameState.add_player(player_id)
 
-      game_state =
-        game_state
-        |> GameState.apply_action(:down, 0)
-        |> GameState.apply_action(:shoot, 0)
+      {:ok, game_state} = GameState.apply_event(game_state, GameEvent.move(player_id, :down))
+      {:ok, game_state} = GameState.apply_event(game_state, GameEvent.shoot(player_id))
 
       game_state = GameState.update(game_state)
 
-      [%{alive: alive, bullets: [first_bullet | _rest_bullets]} | _rest] =
-        game_state.players
+      %{alive?: alive, bullets: [first_bullet | _rest_bullets]} = game_state.players[player_id]
 
       assert alive
-      assert first_bullet.active
+      assert first_bullet.active?
     end
 
     test "updates active bullets in the game state" do
-      {:ok, game_state} = GameState.new() |> GameState.spawn_ship(0)
+      player_id = "player_id"
+      {:ok, game_state} = GameState.new() |> GameState.add_player(player_id)
+
+      {:ok, game_state} = GameState.apply_event(game_state, GameEvent.move(player_id, :down))
+      {:ok, game_state} = GameState.apply_event(game_state, GameEvent.shoot(player_id))
+
+      %Dogfight.Game.DefaultSpaceship{
+        direction: :down,
+        alive?: true,
+        bullets: [
+          %Dogfight.Game.DefaultSpaceship.Bullet{
+            position: %Dogfight.Game.Vec2{y: origin_y},
+            direction: :down,
+            active?: true
+          }
+          | _bullets
+        ]
+      } = game_state.players[player_id]
 
       game_state =
         game_state
-        |> GameState.apply_action(:down, 0)
-        |> GameState.apply_action(:shoot, 0)
-
-      [%{bullets: [%{coord: %{y: origin_y}} | _rest_bullets]} | _rest_players] =
-        game_state.players
-
-      game_state =
-        game_state
         |> GameState.update()
         |> GameState.update()
         |> GameState.update()
 
-      [%{alive: alive, bullets: [first_bullet | _rest_bullets]} | _rest] =
-        game_state.players
+      %{alive?: alive, bullets: [first_bullet | _rest_bullets]} = game_state.players[player_id]
 
       assert alive
-      assert first_bullet.active
-      assert first_bullet.coord.y == origin_y + 18
+      assert first_bullet.active?
+      assert first_bullet.position.y == origin_y + 18
     end
   end
 end
