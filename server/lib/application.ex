@@ -29,7 +29,7 @@ defmodule Dogfight.Application do
         name: Dogfight.ClusterServiceSupervisor, strategy: :one_for_one, members: :auto
       },
       Dogfight.Game.EventHandler,
-      Dogfight.IndexAgent,
+      # Dogfight.IndexAgent,
       Supervisor.child_spec({Task, fn -> Dogfight.Server.listen(port) end}, restart: :permanent)
     ]
 

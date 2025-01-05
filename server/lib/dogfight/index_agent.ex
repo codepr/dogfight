@@ -3,6 +3,8 @@ defmodule Dogfight.IndexAgent do
   Simple agent to generate monotonic increasing indexes for connecting players,
   they will be used as player ids as a first extremely basic iteration, later we
   may prefer to adopt some proper UUID.
+
+  ** Currently unused, will serve as a token session store later **
   """
   use Agent
 
