@@ -20,7 +20,7 @@ defmodule Dogfight.Player do
 
   def handle_info({:tcp, _socket, data}, state) do
     with {:ok, event} <- BinaryCodec.decode_event(data) do
-      Dogfight.Game.Server.apply_event(self(), event)
+      Dogfight.Game.EventHandler.apply_event(self(), event)
     else
       {:ok, :codec_error} -> Logger.error("Decode failed, unknown event")
     end

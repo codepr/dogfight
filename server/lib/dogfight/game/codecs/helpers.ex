@@ -30,7 +30,7 @@ defmodule Dogfight.Game.Codecs.Helpers do
 
   ## Examples
 
-      iex> Dogfight.Encoding.Helpers.encode_list([{1, :half_word}, {2, :word}])
+      iex> Dogfight.Game.Codecs.Helpers.encode_list([{1, :half_word}, {2, :word}])
       <<1::8, 2::16>>
   """
   @spec encode_list([field(), ...]) :: binary()

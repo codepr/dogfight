@@ -1,4 +1,4 @@
-defmodule Dogfight.Game.Server do
+defmodule Dogfight.Game.EventHandler do
   @moduledoc """
   Represents a game server for the Dogfight game. It handles the game state and
   player actions. It is intended as the main source of thruth for each instantiated game,
@@ -78,12 +78,7 @@ defmodule Dogfight.Game.Server do
 
   defp broadcast_game_state(state) do
     Enum.each(state.players, fn {_, player} ->
-      send_update(player.pid, state.game_state)
+      send(player.pid, {:update, state})
     end)
-  end
-
-  defp send_update(pid, state) do
-    # TODO: Encode and send game state to player process
-    send(pid, {:update, state})
   end
 end

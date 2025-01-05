@@ -28,7 +28,7 @@ defmodule Dogfight.Application do
         Horde.DynamicSupervisor,
         name: Dogfight.ClusterServiceSupervisor, strategy: :one_for_one, members: :auto
       },
-      Dogfight.Game.Server,
+      Dogfight.Game.EventHandler,
       Dogfight.IndexAgent,
       Supervisor.child_spec({Task, fn -> Dogfight.Server.listen(port) end}, restart: :permanent)
     ]

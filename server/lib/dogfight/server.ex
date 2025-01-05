@@ -1,9 +1,12 @@
 defmodule Dogfight.Server do
   @moduledoc """
-  Main entry point of the server, accepts connecting clients and defer their ownership
-  to the game server. Each connected client is handled by a `GenServer`, the `Dogfight.Player`.
-  The `Dogfight.Game.Server` governs the main logic of an instantiated game and broadcasts updates
-  to each registered player.
+
+  Main entry point of the server, accepts connecting clients and defer their
+  ownership to the game server. Each connected client is handled by a
+  `GenServer`, the `Dogfight.Player`. The `Dogfight.Game.EventHandler` governs
+  the main logic of an instantiated game and broadcasts updates to each
+  registered player.
+
   """
   require Logger
 
@@ -30,7 +33,7 @@ defmodule Dogfight.Server do
          player_spec <- player_spec(client_socket, player_id),
          {:ok, pid} <- Horde.DynamicSupervisor.start_child(ClusterServiceSupervisor, player_spec) do
       Logger.info("Player #{player_id} connected")
-      Dogfight.Game.Server.register_player(pid, player_id)
+      Dogfight.Game.EventHandler.register_player(pid, player_id)
       :gen_tcp.controlling_process(client_socket, pid)
     else
       error -> Logger.error("Failed to accept connection, reason: #{inspect(error)}")
