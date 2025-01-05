@@ -15,6 +15,36 @@ defmodule Dogfight.Game.Codecs.BinaryCodec do
   @spaceship_byte_size @player_id_byte_size + 5 * @bullet_byte_size +
                          3 * Helpers.double_word_byte_size() + 2 * Helpers.half_word_byte_size()
 
+  @impl true
+  def encode_event(event) do
+    Helpers.encode_list([
+      {event_to_int(event), :half_word}
+    ])
+  end
+
+  @impl true
+  def decode_event(binary) do
+    <<action::big-unsigned-integer-size(8)>> = binary
+
+    {:ok, int_to_event(action)}
+  rescue
+    _e -> {:error, :codec_error}
+  end
+
+  defp event_to_int(action) do
+    case action do
+      :shoot -> 5
+      direction -> encode_direction(direction)
+    end
+  end
+
+  defp int_to_event(intval) do
+    case intval do
+      5 -> :shoot
+      direction -> decode_direction(direction)
+    end
+  end
+
   @doc "Encode a `Game.State` struct into a raw binary payload"
   @impl true
   def encode(game_state) do
