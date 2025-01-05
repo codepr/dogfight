@@ -10,6 +10,10 @@ defmodule Dogfight.Game.Vec2 do
 
   defstruct [:x, :y]
 
+  def random(x, y) do
+    %__MODULE__{x: :rand.uniform(x), y: :rand.uniform(y)}
+  end
+
   def add(v1, v2) do
     %__MODULE__{x: v1.x + v2.x, y: v1.y + v2.y}
   end

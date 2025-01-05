@@ -5,7 +5,7 @@ defmodule Dogfight.Game.Codecs.BinaryCodecTest do
   alias Dogfight.Game.State, as: GameState
   alias Dogfight.Game.Codecs.BinaryCodec
 
-  describe "encode/1 / decode!/1" do
+  describe "encode/1 / decode/1" do
     test "generic behaviour" do
       game_state = GameState.new()
 
@@ -17,6 +17,21 @@ defmodule Dogfight.Game.Codecs.BinaryCodecTest do
     test "returns an error tuple if decoding fails" do
       garbage = IO.iodata_to_binary("some-garbage")
       assert BinaryCodec.decode(garbage) == {:error, :codec_error}
+    end
+  end
+
+  describe "encode_event/1 / decode_event/1" do
+    test "generic behaviour" do
+      event = {:move, "a-thirty-two-bytes-long-playerid", :up}
+
+      assert event
+             |> BinaryCodec.encode_event()
+             |> BinaryCodec.decode_event() == {:ok, event}
+    end
+
+    test "returns an error tuple if decoding fails" do
+      garbage = IO.iodata_to_binary("some-garbage")
+      assert BinaryCodec.decode_event(garbage) == {:error, :codec_error}
     end
   end
 end

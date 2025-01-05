@@ -78,7 +78,7 @@ defmodule Dogfight.Game.DefaultSpaceship do
   @impl true
   def spawn(width, height) do
     %__MODULE__{
-      position: %Vec2{x: :rand.uniform(width), y: :rand.uniform(height)},
+      position: Vec2.random(width, height),
       direction: State.idle(),
       hp: @base_hp,
       alive?: true,

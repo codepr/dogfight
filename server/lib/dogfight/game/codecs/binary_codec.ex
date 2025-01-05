@@ -1,6 +1,9 @@
 defmodule Dogfight.Game.Codecs.BinaryCodec do
   @moduledoc """
   Binary implementation of the game econding and decoding logic
+  Handles
+  - Game state
+  - Game event
   """
 
   @behaviour Dogfight.Game.Codec
@@ -11,37 +14,63 @@ defmodule Dogfight.Game.Codecs.BinaryCodec do
 
   @power_up_byte_size Helpers.double_word_byte_size() * 2 + Helpers.half_word_byte_size()
   @bullet_byte_size Helpers.double_word_byte_size() * 2 + Helpers.half_word_byte_size() * 2
-  @player_id_byte_size Helpers.quad_word_byte_size()
+  @player_id_byte_size Helpers.double_word_byte_size()
   @spaceship_byte_size @player_id_byte_size + 5 * @bullet_byte_size +
                          3 * Helpers.double_word_byte_size() + 2 * Helpers.half_word_byte_size()
 
   @impl true
   def encode_event(event) do
-    Helpers.encode_list([
-      {event_to_int(event), :half_word}
-    ])
+    case event do
+      {:move, player_id, direction} ->
+        Helpers.encode_list([
+          {event_to_int(:move), :half_word},
+          {encode_direction(direction), :half_word},
+          {player_id, :binary}
+        ])
+
+      {:shoot, player_id} ->
+        Helpers.encode_list([
+          {event_to_int(:shoot), :half_word},
+          {player_id, :binary}
+        ])
+    end
   end
 
   @impl true
   def decode_event(binary) do
-    <<action::big-unsigned-integer-size(8)>> = binary
+    <<action::big-integer-size(8), rest::binary>> = binary
 
-    {:ok, int_to_event(action)}
+    action = int_to_event(action)
+
+    case action do
+      :move ->
+        <<direction::big-integer-size(8), player_id::binary-size(@player_id_byte_size)>> =
+          rest
+
+        {:ok, {action, player_id, decode_direction(direction)}}
+
+      :shoot ->
+        <<player_id::binary-size(@player_id_byte_size)>> = rest
+
+        {:ok, {action, player_id}}
+    end
   rescue
     _e -> {:error, :codec_error}
   end
 
+  # For now we can just handle the basic events from the
+  # client, which are only move and shoot really
   defp event_to_int(action) do
     case action do
-      :shoot -> 5
-      direction -> encode_direction(direction)
+      :move -> 0
+      :shoot -> 1
     end
   end
 
   defp int_to_event(intval) do
     case intval do
-      5 -> :shoot
-      direction -> decode_direction(direction)
+      0 -> :move
+      1 -> :shoot
     end
   end
 
@@ -128,11 +157,10 @@ defmodule Dogfight.Game.Codecs.BinaryCodec do
   @doc "Decode a raw binary payload into a `Game.State` struct"
   @impl true
   def decode(binary) do
-    <<_total_length::big-unsigned-integer-size(32), status_len::big-unsigned-integer-size(8),
-      rest::binary>> = binary
+    <<_total_length::big-integer-size(32), status_len::big-integer-size(8), rest::binary>> =
+      binary
 
-    <<status::binary-size(status_len), power_ups_len::big-unsigned-integer-size(16),
-      rest::binary>> = rest
+    <<status::binary-size(status_len), power_ups_len::big-integer-size(16), rest::binary>> = rest
 
     <<power_ups_bin::binary-size(power_ups_len), player_records::binary>> = rest
 
@@ -159,17 +187,16 @@ defmodule Dogfight.Game.Codecs.BinaryCodec do
   end
 
   defp decode_power_up!(
-         <<power_up_x::big-unsigned-integer-size(32), power_up_y::big-unsigned-integer-size(32),
-           power_up_kind::big-unsigned-integer-size(8)>>
+         <<power_up_x::big-integer-size(32), power_up_y::big-integer-size(32),
+           power_up_kind::big-integer-size(8)>>
        ) do
     %{position: %Vec2{x: power_up_x, y: power_up_y}, kind: int_to_power_up(power_up_kind)}
   end
 
   defp decode_spaceship!(
-         <<x::big-unsigned-integer-size(32), y::big-unsigned-integer-size(32),
-           hp::big-unsigned-integer-size(32), alive::big-unsigned-integer-size(8),
-           direction::big-unsigned-integer-size(8), player_id::binary-size(@player_id_byte_size),
-           bullets::binary>>
+         <<x::big-integer-size(32), y::big-integer-size(32), hp::big-integer-size(32),
+           alive::big-integer-size(8), direction::big-integer-size(8),
+           player_id::binary-size(@player_id_byte_size), bullets::binary>>
        ) do
     {player_id,
      %{
@@ -185,8 +212,8 @@ defmodule Dogfight.Game.Codecs.BinaryCodec do
   end
 
   defp decode_bullet!(
-         <<x::big-unsigned-integer-size(32), y::big-unsigned-integer-size(32),
-           active::big-unsigned-integer-size(8), direction::big-unsigned-integer-size(8)>>
+         <<x::big-integer-size(32), y::big-integer-size(32), active::big-integer-size(8),
+           direction::big-integer-size(8)>>
        ) do
     %{
       position: %{x: x, y: y},
