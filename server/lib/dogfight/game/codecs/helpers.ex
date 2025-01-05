@@ -57,8 +57,8 @@ defmodule Dogfight.Game.Codecs.Helpers do
   def encode_integer(false, size), do: encode_integer(0, size)
   def encode_integer(data, size) when is_integer(data), do: <<data::integer-size(size)>>
 
-  def half_word_byte_size, do: @half_word / @half_word
-  def word_byte_size, do: @word / @half_word
-  def double_word_byte_size, do: @double_word / @half_word
-  def quad_word_byte_size, do: @quad_word / @half_word
+  def half_word_byte_size, do: @half_word
+  def word_byte_size, do: @word
+  def double_word_byte_size, do: @double_word
+  def quad_word_byte_size, do: @quad_word
 end

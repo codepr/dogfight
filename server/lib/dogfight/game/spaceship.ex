@@ -3,12 +3,12 @@ defmodule Dogfight.Game.Spaceship do
   Spaceship behaviour
   """
 
-  alias Dogfight.Game.Action
+  alias Dogfight.Game.State
 
   @type t :: any()
 
   @callback spawn(integer(), integer()) :: t()
-  @callback move(t(), Action.direction()) :: t()
+  @callback move(t(), State.direction()) :: t()
   @callback shoot(t()) :: t()
   @callback update_bullets(t()) :: t()
 end

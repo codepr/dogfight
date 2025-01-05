@@ -5,8 +5,8 @@ defmodule Dogfight.Game.Codecs.BinaryCodec do
 
   @behaviour Dogfight.Game.Codec
 
-  alias Dogfight.Game.Action
   alias Dogfight.Game.Codecs.Helpers
+  alias Dogfight.Game.State
   alias Dogfight.Game.Vec2
 
   @power_up_byte_size Helpers.double_word_byte_size() * 2 + Helpers.half_word_byte_size()
@@ -38,7 +38,7 @@ defmodule Dogfight.Game.Codecs.BinaryCodec do
         binary_status_byte_size +
         Helpers.double_word_byte_size() +
         Helpers.half_word_byte_size() +
-        Helpers.word_size_byte()
+        Helpers.word_byte_size()
 
     Helpers.encode_list([
       {total_length, :double_word},
@@ -51,7 +51,7 @@ defmodule Dogfight.Game.Codecs.BinaryCodec do
   end
 
   defp encode_spaceship(player_id, spaceship) do
-    direction = Action.encode_direction(spaceship.direction)
+    direction = encode_direction(spaceship.direction)
 
     binary_bullets =
       spaceship.bullets
@@ -72,7 +72,7 @@ defmodule Dogfight.Game.Codecs.BinaryCodec do
   end
 
   defp encode_power_up(power_up) do
-    kind = encode_power_up(power_up.kind)
+    kind = power_up_to_int(power_up.kind)
     %{position: %{x: x, y: y}} = power_up
 
     Helpers.encode_list([
@@ -83,7 +83,7 @@ defmodule Dogfight.Game.Codecs.BinaryCodec do
   end
 
   defp encode_bullet(bullet) do
-    direction = Action.encode_direction(bullet.direction)
+    direction = encode_direction(bullet.direction)
 
     %{x: x, y: y} = bullet.position
 
@@ -96,8 +96,8 @@ defmodule Dogfight.Game.Codecs.BinaryCodec do
   end
 
   @doc "Decode a raw binary payload into a `Game.State` struct"
-  @implt true
-  def decode!(binary) do
+  @impl true
+  def decode(binary) do
     <<_total_length::big-unsigned-integer-size(32), status_len::big-unsigned-integer-size(8),
       rest::binary>> = binary
 
@@ -117,18 +117,22 @@ defmodule Dogfight.Game.Codecs.BinaryCodec do
       |> Enum.map(&decode_spaceship!/1)
       |> Map.new()
 
-    %__MODULE__{
-      players: players,
-      power_ups: power_ups,
-      status: status
-    }
+    {:ok,
+     %State{
+       players: players,
+       power_ups: power_ups,
+       status: status
+     }}
+  rescue
+    # TODO add custom errors
+    _e -> {:error, :codec_error}
   end
 
   defp decode_power_up!(
          <<power_up_x::big-unsigned-integer-size(32), power_up_y::big-unsigned-integer-size(32),
            power_up_kind::big-unsigned-integer-size(8)>>
        ) do
-    %{position: %Vec2{x: power_up_x, y: power_up_y}, kind: decode_power_up(power_up_kind)}
+    %{position: %Vec2{x: power_up_x, y: power_up_y}, kind: int_to_power_up(power_up_kind)}
   end
 
   defp decode_spaceship!(
@@ -141,7 +145,7 @@ defmodule Dogfight.Game.Codecs.BinaryCodec do
      %{
        position: %Vec2{x: x, y: y},
        hp: hp,
-       direction: Action.decode_direction(direction),
+       direction: decode_direction(direction),
        alive?: alive == 1,
        bullets:
          bullets
@@ -157,7 +161,7 @@ defmodule Dogfight.Game.Codecs.BinaryCodec do
     %{
       position: %{x: x, y: y},
       active?: if(active == 0, do: false, else: true),
-      direction: Action.decode_direction(direction)
+      direction: decode_direction(direction)
     }
   end
 
@@ -165,13 +169,25 @@ defmodule Dogfight.Game.Codecs.BinaryCodec do
     for <<chunk::binary-size(n) <- binary>>, do: <<chunk::binary-size(n)>>
   end
 
-  defp encode_power_up(nil), do: 0
-  defp encode_power_up(:hp_plus_one), do: 1
-  defp encode_power_up(:hp_plus_three), do: 2
-  defp encode_power_up(:ammo_plus_one), do: 3
+  defp power_up_to_int(nil), do: 0
+  defp power_up_to_int(:hp_plus_one), do: 1
+  defp power_up_to_int(:hp_plus_three), do: 2
+  defp power_up_to_int(:ammo_plus_one), do: 3
 
-  defp decode_power_up(0), do: nil
-  defp decode_power_up(1), do: :hp_plus_one
-  defp decode_power_up(2), do: :hp_plus_three
-  defp decode_power_up(3), do: :ammo_plus_one
+  defp int_to_power_up(0), do: nil
+  defp int_to_power_up(1), do: :hp_plus_one
+  defp int_to_power_up(2), do: :hp_plus_three
+  defp int_to_power_up(3), do: :ammo_plus_one
+
+  def encode_direction(:idle), do: 0
+  def encode_direction(:up), do: 1
+  def encode_direction(:down), do: 2
+  def encode_direction(:left), do: 3
+  def encode_direction(:right), do: 4
+
+  def decode_direction(0), do: :idle
+  def decode_direction(1), do: :up
+  def decode_direction(2), do: :down
+  def decode_direction(3), do: :left
+  def decode_direction(4), do: :right
 end

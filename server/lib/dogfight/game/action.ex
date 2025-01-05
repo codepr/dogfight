@@ -1,10 +1,17 @@
 defmodule Dogfight.Game.Action do
   @moduledoc false
 
-  alias Dogfight.Encoding.Helpers, as: Encoding
+  alias Dogfight.Game.Codecs.Helpers, as: Encoding
+  alias Dogfight.Game.Codecs.BinaryCodec
+  alias Dogfight.Game.State
 
-  @type direction :: :idle | :up | :down | :left | :right
-  @type t :: direction() | :shoot
+  @type t ::
+          {:move, State.player_id(), State.direction()}
+          | {:shoot, State.player_id()}
+          | {:pickup_powerup, State.player_id()}
+          | {:spawn_powerup, State.power_up()}
+          | {:start_game}
+          | {:end_game}
 
   def encode(action) do
     total_length = 5
@@ -26,26 +33,14 @@ defmodule Dogfight.Game.Action do
   defp action_to_int(action) do
     case action do
       :shoot -> 5
-      direction -> encode_direction(direction)
+      direction -> BinaryCodec.encode_direction(direction)
     end
   end
 
   defp int_to_action(intval) do
     case intval do
       5 -> :shoot
-      direction -> decode_direction(direction)
+      direction -> BinaryCodec.decode_direction(direction)
     end
   end
-
-  def encode_direction(:idle), do: 0
-  def encode_direction(:up), do: 1
-  def encode_direction(:down), do: 2
-  def encode_direction(:left), do: 3
-  def encode_direction(:right), do: 4
-
-  def decode_direction(0), do: :idle
-  def decode_direction(1), do: :up
-  def decode_direction(2), do: :down
-  def decode_direction(3), do: :left
-  def decode_direction(4), do: :right
 end

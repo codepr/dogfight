@@ -12,13 +12,13 @@ defmodule Dogfight.Game.DefaultSpaceship do
 
     @type t :: %__MODULE__{
             position: Vec2.t(),
-            direction: Action.direction(),
+            direction: State.direction(),
             active?: boolean()
           }
 
     defstruct [:position, :direction, :active?]
 
-    alias Dogfight.Game.Action
+    alias Dogfight.Game.State
     alias Dogfight.Game.Vec2
 
     @bullet_base_speed 6
@@ -26,7 +26,7 @@ defmodule Dogfight.Game.DefaultSpaceship do
     def new do
       %__MODULE__{
         position: %Vec2{x: 0, y: 0},
-        direction: Action.idle(),
+        direction: State.idle(),
         active?: false
       }
     end
@@ -57,14 +57,14 @@ defmodule Dogfight.Game.DefaultSpaceship do
 
   @behaviour Dogfight.Game.Spaceship
 
-  alias Dogfight.Game.Action
+  alias Dogfight.Game.State
   alias Dogfight.Game.Bullet
   alias Dogfight.Game.Vec2
 
   @type t :: %__MODULE__{
           position: Vec2.t(),
           hp: non_neg_integer(),
-          direction: Action.direction(),
+          direction: State.direction(),
           alive?: boolean(),
           bullets: [Bullet.t(), ...]
         }
@@ -79,7 +79,7 @@ defmodule Dogfight.Game.DefaultSpaceship do
   def spawn(width, height) do
     %__MODULE__{
       position: %Vec2{x: :rand.uniform(width), y: :rand.uniform(height)},
-      direction: Action.idle(),
+      direction: State.idle(),
       hp: @base_hp,
       alive?: true,
       bullets: Stream.repeatedly(&__MODULE__.Bullet.new/0) |> Enum.take(@base_bullet_count)
