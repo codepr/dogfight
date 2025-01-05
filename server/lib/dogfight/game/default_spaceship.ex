@@ -75,7 +75,6 @@ defmodule Dogfight.Game.DefaultSpaceship do
   @base_bullet_count 5
   @base_spaceship_speed 3
 
-  @impl true
   def spawn(width, height) do
     %__MODULE__{
       position: Vec2.random(width, height),
