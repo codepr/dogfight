@@ -120,7 +120,7 @@ defmodule Dogfight.Game.Codecs.BinaryCodec do
     Helpers.encode_list([
       {x, :double_word},
       {y, :double_word},
-      {spaceship.hp, :double_word},
+      {spaceship.hp, :half_word},
       {if(spaceship.alive?, do: 1, else: 0), :half_word},
       {direction, :half_word},
       {player_id, :binary},
@@ -192,7 +192,7 @@ defmodule Dogfight.Game.Codecs.BinaryCodec do
   end
 
   defp decode_spaceship!(
-         <<x::big-integer-size(32), y::big-integer-size(32), hp::big-integer-size(32),
+         <<x::big-integer-size(32), y::big-integer-size(32), hp::big-integer-size(8),
            alive::big-integer-size(8), direction::big-integer-size(8),
            player_id::binary-size(@player_id_size), bullets::binary>>
        ) do
