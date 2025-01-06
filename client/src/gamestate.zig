@@ -66,6 +66,8 @@ const testing = std.testing;
 
 const max_players: usize = 5;
 const max_bullets: usize = 5;
+const player_size: usize = @sizeOf(i32) * 2 + @sizeOf(u8) * 3 + 36 + ((@sizeOf(i32) * 2) + (@sizeOf(u8) * 2)) * max_bullets;
+const power_up_size: usize = ((@sizeOf(i32) * 2) + @sizeOf(u8));
 
 const Vector2D = struct {
     x: i32,
@@ -241,11 +243,11 @@ pub fn decode(buffer: []const u8) !GameState {
 
     const power_ups = try decode_power_ups(reader);
 
-    const player_size = @sizeOf(i32) * 2 + @sizeOf(u8) * 3 + 36 + ((@sizeOf(i32) * 2) + (@sizeOf(u8) * 2));
-
     const usize_total_length: usize = @intCast(total_length);
 
-    const players_count = (usize_total_length - (power_ups.len * ((@sizeOf(i32) * 2) + @sizeOf(u8))) - @sizeOf(u8) - @sizeOf(i32)) / player_size;
+    // Rough calculatiion of the players count based on the bytes already
+    // read and the size expected for each player
+    const players_count = (usize_total_length - (power_ups.len * power_up_size) - @sizeOf(u8) - @sizeOf(i32) - @sizeOf(i16)) / player_size;
 
     const allocator = std.heap.page_allocator;
 
