@@ -1,16 +1,8 @@
 defmodule Dogfight.Application do
   @moduledoc """
   Documentation for `Dogfight`.
-  """
-
-  @doc """
-  Hello world.
-
-  ## Examples
-
-      iex> Dogfight.start()
-      :world
-
+  Server component for the Dogfight battle arena game, developed to have
+  some fun with game dev and soft-real time distributed systems.
   """
 
   use Application
