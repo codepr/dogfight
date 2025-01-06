@@ -24,16 +24,17 @@ defmodule Dogfight.Game.Codecs.BinaryCodec do
   @impl true
   def encode_event(event) do
     case event do
-      {:move, player_id, direction} ->
+      {:move, {player_id, direction}} ->
         Helpers.encode_list([
           {event_to_int(:move), :half_word},
           {direction_to_int(direction), :half_word},
           {player_id, :binary}
         ])
 
-      {:shoot, player_id} ->
+      {player_action, player_id}
+      when player_action in [:player_connection, :player_disconnection, :shoot] ->
         Helpers.encode_list([
-          {event_to_int(:shoot), :half_word},
+          {event_to_int(player_action), :half_word},
           {player_id, :binary}
         ])
     end
@@ -50,9 +51,9 @@ defmodule Dogfight.Game.Codecs.BinaryCodec do
         <<direction::big-integer-size(8), player_id::binary-size(@player_id_size)>> =
           rest
 
-        {:ok, {action, player_id, int_to_direction(direction)}}
+        {:ok, {action, {player_id, int_to_direction(direction)}}}
 
-      :shoot ->
+      player_action when player_action in [:player_connection, :player_disconnection, :shoot] ->
         <<player_id::binary-size(@player_id_size)>> = rest
 
         {:ok, {action, player_id}}
@@ -65,15 +66,19 @@ defmodule Dogfight.Game.Codecs.BinaryCodec do
   # client, which are only move and shoot really
   defp event_to_int(action) do
     case action do
-      :move -> 0
-      :shoot -> 1
+      :player_connection -> 0
+      :player_disconnection -> 1
+      :move -> 2
+      :shoot -> 3
     end
   end
 
   defp int_to_event(intval) do
     case intval do
-      0 -> :move
-      1 -> :shoot
+      0 -> :player_connection
+      1 -> :player_disconnection
+      2 -> :move
+      3 -> :shoot
     end
   end
 

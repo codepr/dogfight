@@ -7,13 +7,17 @@ defmodule Dogfight.Game.Event do
   alias Dogfight.Game.State
 
   @type t ::
-          {:move, State.player_id(), State.direction()}
+          {:player_connection, State.player_id()}
+          | {:player_disconnection, State.player_id()}
+          | {:move, {State.player_id(), State.direction()}}
           | {:shoot, State.player_id()}
           | {:pickup_power_up, State.player_id()}
           | {:spawn_power_up, State.power_up_kind()}
           | {:start_game}
           | {:end_game}
 
-  def move(player_id, direction), do: {:move, player_id, direction}
+  def player_connection(player_id), do: {:player_connection, player_id}
+  def player_disconnection(player_id), do: {:player_disconnection, player_id}
+  def move(player_id, direction), do: {:move, {player_id, direction}}
   def shoot(player_id), do: {:shoot, player_id}
 end

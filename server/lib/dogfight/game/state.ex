@@ -37,6 +37,7 @@ defmodule Dogfight.Game.State do
   def new do
     %__MODULE__{
       power_ups: [],
+      status: :closed,
       players: %{}
     }
   end
@@ -62,6 +63,11 @@ defmodule Dogfight.Game.State do
     end
   end
 
+  @spec drop_player(t(), player_id()) :: t()
+  def drop_player(game_state, player_id) do
+    Map.delete(game_state, player_id)
+  end
+
   @spec update(t()) :: t()
   def update(game_state) do
     %{
@@ -82,7 +88,7 @@ defmodule Dogfight.Game.State do
   end
 
   @spec apply_event(t(), Event.t()) :: {:ok, t()} | {:error, :dismissed_ship}
-  def apply_event(game_state, {:move, player_id, direction}) do
+  def apply_event(game_state, {:move, {player_id, direction}}) do
     with {:ok, spaceship} <- fetch_spaceship(game_state.players, player_id) do
       {:ok,
        %{

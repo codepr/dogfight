@@ -19,16 +19,27 @@ defmodule Dogfight.Game.EventHandler do
   def init(_) do
     game_state = GameState.new()
     schedule_tick()
-    {:ok, %{players: [], game_state: game_state}}
+    {:ok, %{players: %{}, game_state: game_state}}
   end
 
   def register_player(pid, player_id) do
-    GenServer.call(__MODULE__, {:register_player, pid})
+    GenServer.call(__MODULE__, {:register_player, pid, player_id})
     GenServer.cast(__MODULE__, {:add_player, player_id})
   end
 
   def apply_event(pid, event) do
-    GenServer.cast(__MODULE__, {:apply_event, pid, event})
+    case event do
+      {:player_connection, player_id} ->
+        GenServer.call(__MODULE__, {:register_player, pid, player_id})
+        GenServer.cast(__MODULE__, {:add_player, player_id})
+
+      {:player_disconnection, player_id} ->
+        GenServer.call(__MODULE__, {:unregister_player, player_id})
+        GenServer.cast(__MODULE__, {:drop_player, player_id})
+
+      event ->
+        GenServer.cast(__MODULE__, {:apply_event, pid, event})
+    end
   end
 
   defp schedule_tick() do
@@ -45,9 +56,21 @@ defmodule Dogfight.Game.EventHandler do
   end
 
   @impl true
-  def handle_call({:register_player, pid}, from, state) do
+  def handle_call({:register_player, pid, player_id}, from, state) do
     new_state =
-      Map.update!(state, :players, fn players -> [{:player_id, %{pid: pid}} | players] end)
+      Map.update!(state, :players, fn players ->
+        Map.put(players, player_id, pid)
+      end)
+
+    {:reply, from, new_state}
+  end
+
+  @impl true
+  def handle_call({:unregister_player, player_id}, from, state) do
+    new_state =
+      Map.update!(state, :players, fn players ->
+        Map.delete(players, player_id)
+      end)
 
     {:reply, from, new_state}
   end
@@ -61,11 +84,16 @@ defmodule Dogfight.Game.EventHandler do
           game_state
 
         {:error, error} ->
-          Logger.error("Failed spawining ship, reason: #{inspect(error)}")
+          Logger.error("Failed spawining spaceship, reason: #{inspect(error)}")
           state.game_state
       end
 
     {:noreply, %{state | game_state: game_state}}
+  end
+
+  @impl true
+  def handle_cast({:drop_player, player_id}, state) do
+    {:noreply, %{state | game_state: GameState.drop_player(state.game_state, player_id)}}
   end
 
   @impl true
@@ -77,8 +105,8 @@ defmodule Dogfight.Game.EventHandler do
   end
 
   defp broadcast_game_state(state) do
-    Enum.each(state.players, fn {_player_id, player} ->
-      send(player.pid, {:update, state.game_state})
+    Enum.each(Map.values(state.players), fn pid ->
+      send(pid, {:update, state.game_state})
     end)
   end
 end

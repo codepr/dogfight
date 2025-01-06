@@ -2,6 +2,7 @@ defmodule Dogfight.Game.Codecs.BinaryCodecTest do
   @moduledoc false
   use ExUnit.Case
 
+  alias Dogfight.Game.Event, as: GameEvent
   alias Dogfight.Game.State, as: GameState
   alias Dogfight.Game.Codecs.BinaryCodec
 
@@ -22,7 +23,25 @@ defmodule Dogfight.Game.Codecs.BinaryCodecTest do
 
   describe "encode_event/1 / decode_event/1" do
     test "generic behaviour" do
-      event = {:move, "my-thirty-six-bytes-length-player-id", :up}
+      event = GameEvent.player_connection("my-thirty-six-bytes-length-player-id")
+
+      assert event
+             |> BinaryCodec.encode_event()
+             |> BinaryCodec.decode_event() == {:ok, event}
+
+      event = GameEvent.player_disconnection("my-thirty-six-bytes-length-player-id")
+
+      assert event
+             |> BinaryCodec.encode_event()
+             |> BinaryCodec.decode_event() == {:ok, event}
+
+      event = GameEvent.move("my-thirty-six-bytes-length-player-id", :up)
+
+      assert event
+             |> BinaryCodec.encode_event()
+             |> BinaryCodec.decode_event() == {:ok, event}
+
+      event = GameEvent.shoot("my-thirty-six-bytes-length-player-id")
 
       assert event
              |> BinaryCodec.encode_event()

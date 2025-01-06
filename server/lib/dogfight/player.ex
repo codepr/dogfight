@@ -8,13 +8,14 @@ defmodule Dogfight.Player do
   use GenServer
 
   alias Dogfight.Game.Codecs.BinaryCodec
+  alias Dogfight.Game.Event, as: GameEvent
 
   def start_link(player_id, socket) do
     GenServer.start_link(__MODULE__, {player_id, socket})
   end
 
   def init({player_id, socket}) do
-    Logger.info("Player connected, registering to game server")
+    Logger.info("Player #{player_id} connected, registering to game server")
     {:ok, %{player_id: player_id, socket: socket}}
   end
 
@@ -29,7 +30,13 @@ defmodule Dogfight.Player do
   end
 
   def handle_info({:tcp_closed, _socket}, state) do
-    Logger.info("Player disconnected")
+    Logger.info("Player #{state.player_id} disconnected")
+
+    Dogfight.Game.EventHandler.apply_event(
+      self(),
+      GameEvent.player_disconnection(state.player_id)
+    )
+
     {:noreply, state}
   end
 

@@ -96,7 +96,7 @@ const Bullet = struct {
     active: bool,
 
     pub fn print(self: Bullet, writer: anytype) !void {
-        try writer.print("position: ", .{});
+        try writer.print("    position: ", .{});
         try self.position.print(writer);
         try writer.print(" Direction: ", .{});
         try self.direction.print(writer);
@@ -112,14 +112,14 @@ const Player = struct {
     bullets: [max_bullets]Bullet,
 
     pub fn print(self: Player, writer: anytype) !void {
-        try writer.print("position: ", .{});
+        try writer.print("   position: ", .{});
         try self.position.print(writer);
-        try writer.print(" HP: {d}\n", .{self.hp});
-        try writer.print("Direction: ", .{});
+        try writer.print("   HP: {d}\n", .{self.hp});
+        try writer.print("   Direction: ", .{});
         try self.direction.print(writer);
         try writer.print(" Alive: {s}\n", .{if (self.alive) "true" else "false"});
 
-        try writer.print("Bullets:\n", .{});
+        try writer.print("   Bullets:\n", .{});
         for (self.bullets) |bullet| {
             try bullet.print(writer);
         }
@@ -170,16 +170,18 @@ const GameState = struct {
 
     pub fn print(self: GameState, writer: anytype) !void {
         try writer.print("GameState:\n", .{});
-        try writer.print("PowerUps: ", .{});
-        for (0.., self.power_ups) |index, power_up| {
-            try writer.print("Player {d}:\n", .{index});
+        try writer.print(" Power ups:\n", .{});
+        for (self.power_ups) |power_up| {
             try power_up.print(writer);
         }
 
+        try writer.print(" Players:\n", .{});
         var iterator = self.players.iterator();
-
+        var player_index: usize = 0;
         while (iterator.next()) |entry| {
+            try writer.print("  Player {d} - {s}:\n", .{ player_index, entry.key_ptr.* });
             try entry.value_ptr.print(writer);
+            player_index += 1;
         }
     }
 };
@@ -242,9 +244,12 @@ pub fn decode(buffer: []const u8) !GameState {
     const player_size = @sizeOf(i32) * 2 + @sizeOf(u8) * 3 + 36 + ((@sizeOf(i32) * 2) + (@sizeOf(u8) * 2));
 
     const usize_total_length: usize = @intCast(total_length);
-    const players_count = (usize_total_length - (power_ups.len * ((@sizeOf(i32) * 2) + @sizeOf(u8)) - @sizeOf(u8) - @sizeOf(i32))) / player_size;
 
-    var players: std.StringHashMap(Player) = undefined;
+    const players_count = (usize_total_length - (power_ups.len * ((@sizeOf(i32) * 2) + @sizeOf(u8))) - @sizeOf(u8) - @sizeOf(i32)) / player_size;
+
+    const allocator = std.heap.page_allocator;
+
+    var players = std.StringHashMap(Player).init(allocator);
     for (0..players_count) |_| {
         var player = Player{
             .position = Vector2D{
@@ -257,8 +262,10 @@ pub fn decode(buffer: []const u8) !GameState {
             .bullets = undefined,
         };
 
-        var player_id: [36]u8 = undefined;
-        _ = try reader.readAll(&player_id);
+        var binary_player_id: [36]u8 = undefined;
+        _ = try reader.readAll(&binary_player_id);
+
+        const player_id = try std.fmt.allocPrint(allocator, "{s}", .{binary_player_id[0..]});
 
         var bullets: [max_bullets]Bullet = undefined;
         for (&bullets) |*bullet| {
@@ -271,7 +278,7 @@ pub fn decode(buffer: []const u8) !GameState {
         }
         player.bullets = bullets; // Assign bullets array
 
-        try players.put(&player_id, player);
+        try players.put(player_id, player);
     }
 
     return GameState{ .players = players, .power_ups = power_ups, .status = @enumFromInt(game_status) };
@@ -509,9 +516,8 @@ test "empty game state serializes and deserializes correctly" {
     const allocator = std.heap.page_allocator;
 
     const game_state = GameState{
-        .player_index = 0,
-        .active_players = 0,
-        .power_up = PowerUp{ .position = Vector2D{ .x = 0, .y = 0 }, .kind = PowerUpKind.None },
+        .power_ups = .{PowerUp{ .position = Vector2D{ .x = 0, .y = 0 }, .kind = PowerUpKind.None }},
+        .status = GameStatus.InProgress,
         .players = undefined,
     };
 
@@ -520,7 +526,6 @@ test "empty game state serializes and deserializes correctly" {
     const decoded_game_state = try decode(buffer);
 
     // Assert that the decoded game state matches the original empty state
-    try testing.expect(game_state.player_index == decoded_game_state.player_index);
-    try testing.expect(game_state.active_players == decoded_game_state.active_players);
-    try testing.expect(game_state.power_up.kind == decoded_game_state.power_up.kind);
+    try testing.expect(game_state.status == decoded_game_state.status);
+    try testing.expect(game_state.power_ups[0].kind == decoded_game_state.power_ups[0].kind);
 }
