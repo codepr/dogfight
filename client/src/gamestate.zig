@@ -176,9 +176,10 @@ const GameState = struct {
             try power_up.print(writer);
         }
 
-        for (0.., self.players) |index, player| {
-            try writer.print("Player {d}:\n", .{index});
-            try player.print(writer);
+        var iterator = self.players.iterator();
+
+        while (iterator.next()) |entry| {
+            try entry.value_ptr.print(writer);
         }
     }
 };
@@ -202,7 +203,7 @@ pub fn encode(game_state: GameState, allocator: std.mem.Allocator) ![]u8 {
     while (iterator.next()) |entry| {
         try writer.writeInt(i32, entry.value_ptr.position.x, .big);
         try writer.writeInt(i32, entry.value_ptr.position.y, .big);
-        try writer.writeInt(i32, entry.value_ptr.hp, .big);
+        try writer.writeInt(u8, entry.value_ptr.hp, .big);
         try writer.writeInt(u8, @intFromBool(entry.value_ptr.alive), .big);
         try writer.writeInt(u8, @intFromEnum(entry.value_ptr.direction), .big);
         try writer.writeAll(entry.key_ptr);
@@ -233,28 +234,31 @@ pub fn decode(buffer: []const u8) !GameState {
     var buffered_stream = std.io.fixedBufferStream(buffer);
     var reader = buffered_stream.reader();
 
-    _ = try reader.readInt(i32, .big);
+    const total_length = try reader.readInt(i32, .big);
     const game_status = try reader.readByte();
-
-    // const power_up = PowerUp{
-    //     .position = Vector2D{
-    //         .x = try reader.readInt(i32, .big),
-    //         .y = try reader.readInt(i32, .big),
-    //     },
-    //     .kind = @enumFromInt(try reader.readInt(u8, .big)),
-    // };
 
     const power_ups = try decode_power_ups(reader);
 
-    var players: [max_players]Player = undefined;
-    for (&players) |*player| {
-        player.position = Vector2D{
-            .x = try reader.readInt(i32, .big),
-            .y = try reader.readInt(i32, .big),
+    const player_size = @sizeOf(i32) * 2 + @sizeOf(u8) * 3 + 36 + ((@sizeOf(i32) * 2) + (@sizeOf(u8) * 2));
+
+    const usize_total_length: usize = @intCast(total_length);
+    const players_count = (usize_total_length - (power_ups.len * ((@sizeOf(i32) * 2) + @sizeOf(u8)) - @sizeOf(u8) - @sizeOf(i32))) / player_size;
+
+    var players: std.StringHashMap(Player) = undefined;
+    for (0..players_count) |_| {
+        var player = Player{
+            .position = Vector2D{
+                .x = try reader.readInt(i32, .big),
+                .y = try reader.readInt(i32, .big),
+            },
+            .hp = try reader.readInt(u8, .big),
+            .alive = try reader.readInt(u8, .big) != 0, // Deserialize bool as u8
+            .direction = @enumFromInt(try reader.readInt(u8, .big)),
+            .bullets = undefined,
         };
-        player.hp = try reader.readInt(i32, .big);
-        player.alive = try reader.readInt(u8, .big) != 0; // Deserialize bool as u8
-        player.direction = @enumFromInt(try reader.readInt(u8, .big));
+
+        var player_id: [36]u8 = undefined;
+        _ = try reader.readAll(&player_id);
 
         var bullets: [max_bullets]Bullet = undefined;
         for (&bullets) |*bullet| {
@@ -266,24 +270,27 @@ pub fn decode(buffer: []const u8) !GameState {
             bullet.direction = @enumFromInt(try reader.readInt(u8, .big));
         }
         player.bullets = bullets; // Assign bullets array
+
+        try players.put(&player_id, player);
     }
 
-    return GameState{
-        .player_index = @intCast(player_index),
-        .active_players = @intCast(active_players),
-        .power_up = power_up,
-        .players = players,
-    };
+    return GameState{ .players = players, .power_ups = power_ups, .status = @enumFromInt(game_status) };
 }
 
-fn decode_power_ups(reader: std.io.Reader) ![]PowerUp {
+fn decode_power_ups(reader: anytype) ![]PowerUp {
+    const allocator = std.heap.page_allocator;
     const raw_size = try reader.readInt(i16, .big);
-    const size = raw_size / ((@sizeOf(i32) * 2) + @sizeOf(u8));
+    const size = @divExact(raw_size, ((@sizeOf(i32) * 2) + @sizeOf(u8)));
 
-    var power_ups: [size]PowerUp = undefined;
+    if (size < 0) {
+        return error.InvalidSize; // Return an error for negative size
+    }
 
-    for (&power_ups) |*power_up| {
-        power_up.position = Vector2D {.x = try reader.readInt(i32, .big), .y = try reader.readInt(i32, .big)};
+    const usize_size: usize = @intCast(size);
+
+    const power_ups = try allocator.alloc(PowerUp, usize_size);
+    for (power_ups) |*power_up| {
+        power_up.position = Vector2D{ .x = try reader.readInt(i32, .big), .y = try reader.readInt(i32, .big) };
         power_up.kind = @enumFromInt(try reader.readByte());
     }
 
@@ -297,6 +304,8 @@ test "serialization and deserialization work correctly" {
         .position = Vector2D{ .x = 10, .y = 20 },
         .kind = PowerUpKind.HpPlusOne,
     };
+
+    const status = GameStatus.InProgress;
 
     const players: [max_players]Player = .{ Player{
         .position = Vector2D{ .x = 1, .y = 2 },
@@ -460,12 +469,7 @@ test "serialization and deserialization work correctly" {
         },
     } };
 
-    const game_state = GameState{
-        .player_index = 0,
-        .active_players = 1,
-        .power_up = power_up,
-        .players = players,
-    };
+    const game_state = GameState{ .power_ups = .{power_up}, .players = players, .status = status };
 
     // Encode the game state into a buffer
     const buffer = try encode(game_state, allocator);
@@ -474,15 +478,16 @@ test "serialization and deserialization work correctly" {
     const decoded_game_state = try decode(buffer);
 
     // Assert that the original game state and the decoded game state are equal
-    try testing.expect(game_state.player_index == decoded_game_state.player_index);
-    try testing.expect(game_state.active_players == decoded_game_state.active_players);
-    try testing.expect(game_state.power_up.position.x == decoded_game_state.power_up.position.x);
-    try testing.expect(game_state.power_up.position.y == decoded_game_state.power_up.position.y);
-    try testing.expect(game_state.power_up.kind == decoded_game_state.power_up.kind);
+    try testing.expect(game_state.power_ups[0].position.x == decoded_game_state.power_ups[0].position.x);
+    try testing.expect(game_state.power_ups[0].position.y == decoded_game_state.power_ups[0].position.y);
+    try testing.expect(game_state.power_ups[0].kind == decoded_game_state.power_ups[0].kind);
+
+    var iterator = decoded_game_state.players.iterator();
 
     // Check players
-    for (0.., game_state.players) |index, player| {
-        const decoded_player = decoded_game_state.players[index];
+    while (iterator.next()) |entry| {
+        const player = try game_state.players[entry.key_ptr];
+        const decoded_player = entry.value_ptr;
         try testing.expect(player.position.x == decoded_player.position.x);
         try testing.expect(player.position.y == decoded_player.position.y);
         try testing.expect(player.hp == decoded_player.hp);

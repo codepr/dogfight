@@ -77,8 +77,8 @@ defmodule Dogfight.Game.EventHandler do
   end
 
   defp broadcast_game_state(state) do
-    Enum.each(state.players, fn {_, player} ->
-      send(player.pid, {:update, state})
+    Enum.each(state.players, fn {_player_id, player} ->
+      send(player.pid, {:update, state.game_state})
     end)
   end
 end
