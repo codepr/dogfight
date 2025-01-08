@@ -20,8 +20,8 @@ pub fn main() anyerror!void {
     const stream = try net.connect("127.0.0.1", server_port);
     defer stream.close();
 
-    render.init(screen_width, screen_height, target_fps);
-    defer render.shutdown();
+    var renderer = try render.Renderer.init(screen_width, screen_height, target_fps, allocator);
+    defer renderer.deinit();
 
     // Main game loop
     // Detect window close button or ESC key
@@ -32,8 +32,8 @@ pub fn main() anyerror!void {
         const stdout = std.io.getStdOut().writer();
         try gamestate.print(stdout);
         // Draw game state
-        render.drawGameState(&gamestate);
-        render.text("Congrats! You created your first window!", 190, 200, 20);
+        renderer.drawGameState(&gamestate);
+        // render.text("Congrats! You created your first window!", 190, 200, 20);
         //----------------------------------------------------------------------------------
     }
 }

@@ -79,14 +79,14 @@ const Vector2D = struct {
 };
 
 pub const Direction = enum {
-    Up,
-    Down,
-    Left,
-    Right,
+    up,
+    down,
+    left,
+    right,
 
     pub fn print(self: Direction, writer: anytype) !void {
         const dir_names = [_][]const u8{
-            "Up", "Down", "Left", "Right",
+            "up", "down", "left", "right",
         };
         try writer.print("{s}", .{dir_names[@intFromEnum(self)]});
     }
@@ -129,22 +129,22 @@ pub const Player = struct {
 };
 
 const PowerUpKind = enum {
-    None,
-    HpPlusOne,
-    HpPlusThree,
-    AmmoPlusOne,
+    none,
+    hp_plus_onene,
+    hp_plus_threeee,
+    ammo_plus_onene,
 
     pub fn print(self: PowerUpKind, writer: anytype) !void {
         const kind_names = [_][]const u8{
-            "None", "HpPlusOne", "HpPlusThree", "AmmoPlusOne",
+            "none", "hp_plus_one", "hp_plus_three", "ammo_plus_one",
         };
         try writer.print("{s}", .{kind_names[@intFromEnum(self)]});
     }
 };
 
 pub const GameStatus = enum {
-    InProgress,
-    Closed,
+    in_progresss,
+    closed,
 
     pub fn print(self: GameStatus, writer: anytype) !void {
         const status_names = [_][]const u8{ "In Progress", "Closed" };
