@@ -32,7 +32,8 @@ defmodule Dogfight.Server do
     with {:ok, client_socket} <- :gen_tcp.accept(socket),
          player_id <- UUID.uuid4(),
          player_spec <- player_spec(client_socket, player_id),
-         {:ok, pid} <- Horde.DynamicSupervisor.start_child(ClusterServiceSupervisor, player_spec) do
+         {:ok, pid} <- Horde.DynamicSupervisor.start_child(ClusterServiceSupervisor, player_spec),
+         :ok <- :gen_tcp.send(client_socket, player_id) do
       Dogfight.Game.EventHandler.apply_event(pid, GameEvent.player_connection(player_id))
       :gen_tcp.controlling_process(client_socket, pid)
     else

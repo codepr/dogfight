@@ -3,9 +3,10 @@
 //! Connects to the gameserver running at port 6699 and receive the gamestate
 //! with its own positioned ship
 const std = @import("std");
-const rl = @import("raylib");
 const net = @import("network.zig");
 const render = @import("render.zig");
+const input = @import("input.zig");
+const event = @import("event.zig");
 
 const server_port = 6699;
 const screen_width = 800;
@@ -20,6 +21,11 @@ pub fn main() anyerror!void {
     const stream = try net.connect("127.0.0.1", server_port);
     defer stream.close();
 
+    // Read player ID
+    var player_id: [36]u8 = undefined;
+    try net.handshake(&stream, &player_id);
+    std.debug.print("Player ID: {s}\n", .{player_id});
+
     var renderer = try render.Renderer.init(screen_width, screen_height, target_fps, allocator);
     defer renderer.deinit();
 
@@ -29,11 +35,24 @@ pub fn main() anyerror!void {
         // Receive the game state from the server
         const gamestate = try net.receiveUpdate(&stream, allocator);
         // Log it to console for debug
-        const stdout = std.io.getStdOut().writer();
-        try gamestate.print(stdout);
+        // const stdout = std.io.getStdOut().writer();
+        // try gamestate.print(stdout);
         // Draw game state
         renderer.drawGameState(&gamestate);
-        // render.text("Congrats! You created your first window!", 190, 200, 20);
         //----------------------------------------------------------------------------------
+        // Capture any input
+        if (input.input()) |input_event| {
+            const game_event = switch (input_event) {
+                .move_up => event.Event{ .move = event.Event.MoveEvent{ .player_id = player_id, .direction = event.Direction.up } },
+                .move_down => event.Event{ .move = event.Event.MoveEvent{ .player_id = player_id, .direction = event.Direction.down } },
+                .move_left => event.Event{ .move = event.Event.MoveEvent{ .player_id = player_id, .direction = event.Direction.left } },
+                .move_right => event.Event{ .move = event.Event.MoveEvent{ .player_id = player_id, .direction = event.Direction.right } },
+                .shoot => event.Event{ .shoot = player_id },
+            };
+            const buffer = try event.encode(game_event, allocator);
+            try net.sendUpdate(&stream, buffer);
+        }
+
+        render.text("Moved", 190, 200, 20);
     }
 }
