@@ -1,7 +1,7 @@
 const std = @import("std");
+const gs = @import("gamestate.zig");
 
 pub const PlayerId = [36]u8;
-pub const Direction = enum { up, down, left, right };
 
 const move_u8: u8 = 2;
 const shoot_u8: u8 = 3;
@@ -12,7 +12,7 @@ pub const Event = union(enum) {
 
     pub const MoveEvent = struct {
         player_id: PlayerId,
-        direction: Direction,
+        direction: gs.Direction,
     };
 };
 
@@ -31,7 +31,7 @@ pub fn encode(event: Event, allocator: std.mem.Allocator) ![]u8 {
             return buffer;
         },
         .shoot => |player_id| {
-            const buffer = try allocator.alloc(u8, @sizeOf(u8) + @sizeOf(PlayerId) + (@sizeOf(u8) * 2));
+            const buffer = try allocator.alloc(u8, @sizeOf(u8) + @sizeOf(PlayerId));
             errdefer allocator.free(buffer); // Ensure buffer is freed on error
 
             var buffered_stream = std.io.fixedBufferStream(buffer);

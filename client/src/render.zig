@@ -52,6 +52,7 @@ pub const Renderer = struct {
         if (!player.alive) return;
 
         const rotation: f32 = switch (player.direction) {
+            gs.Direction.idle => 0.0,
             gs.Direction.up => 0.0,
             gs.Direction.right => 90.0,
             gs.Direction.down => 180.0,
@@ -70,6 +71,7 @@ pub const Renderer = struct {
         if (!bullet.active) return;
 
         const rotation: f32 = switch (bullet.direction) {
+            gs.Direction.idle => 0.0,
             gs.Direction.up => 270.0,
             gs.Direction.right => 0.0,
             gs.Direction.down => 90.0,

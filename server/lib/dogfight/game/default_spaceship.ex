@@ -13,21 +13,23 @@ defmodule Dogfight.Game.DefaultSpaceship do
     @type t :: %__MODULE__{
             position: Vec2.t(),
             direction: State.direction(),
-            active?: boolean()
+            active?: boolean(),
+            boundaries: %{width: non_neg_integer(), height: non_neg_integer()}
           }
 
-    defstruct [:position, :direction, :active?]
+    defstruct [:position, :direction, :active?, :boundaries]
 
     alias Dogfight.Game.State
     alias Dogfight.Game.Vec2
 
     @bullet_base_speed 6
 
-    def new do
+    def new(width, height) do
       %__MODULE__{
         position: %Vec2{x: 0, y: 0},
         direction: State.idle(),
-        active?: false
+        active?: false,
+        boundaries: %{width: width, height: height}
       }
     end
 
@@ -36,23 +38,36 @@ defmodule Dogfight.Game.DefaultSpaceship do
     def update(bullet) do
       position = bullet.position
 
-      case bullet.direction do
-        :up ->
-          %{bullet | position: Vec2.add_y(position, -@bullet_base_speed)}
+      bullet =
+        case bullet.direction do
+          :up ->
+            %{bullet | position: Vec2.add_y(position, -@bullet_base_speed)}
 
-        :down ->
-          %{bullet | position: Vec2.add_y(position, @bullet_base_speed)}
+          :down ->
+            %{bullet | position: Vec2.add_y(position, @bullet_base_speed)}
 
-        :left ->
-          %{bullet | position: Vec2.add_x(position, -@bullet_base_speed)}
+          :left ->
+            %{bullet | position: Vec2.add_x(position, -@bullet_base_speed)}
 
-        :right ->
-          %{bullet | position: Vec2.add_x(position, @bullet_base_speed)}
+          :right ->
+            %{bullet | position: Vec2.add_x(position, @bullet_base_speed)}
 
-        _ ->
-          bullet
-      end
+          _ ->
+            bullet
+        end
+
+      boundaries_check(bullet)
     end
+
+    defp boundaries_check(%{position: %{x: x}, boundaries: %{width: width}} = bullet)
+         when x < 0 or x >= width,
+         do: %{bullet | active?: false}
+
+    defp boundaries_check(%{position: %{y: y}, boundaries: %{height: height}} = bullet)
+         when y < 0 or y >= height,
+         do: %{bullet | active?: false}
+
+    defp boundaries_check(bullet), do: bullet
   end
 
   @behaviour Dogfight.Game.Spaceship
@@ -81,7 +96,9 @@ defmodule Dogfight.Game.DefaultSpaceship do
       direction: State.idle(),
       hp: @base_hp,
       alive?: true,
-      bullets: Stream.repeatedly(&__MODULE__.Bullet.new/0) |> Enum.take(@base_bullet_count)
+      bullets:
+        Stream.repeatedly(fn -> __MODULE__.Bullet.new(width, height) end)
+        |> Enum.take(@base_bullet_count)
     }
   end
 
@@ -95,6 +112,7 @@ defmodule Dogfight.Game.DefaultSpaceship do
         :down -> Vec2.add_y(position, @base_spaceship_speed)
         :left -> Vec2.add_x(position, -@base_spaceship_speed)
         :right -> Vec2.add_x(position, @base_spaceship_speed)
+        :idle -> position
       end
 
     %{spaceship | direction: direction, position: updated_position}

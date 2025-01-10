@@ -98,9 +98,17 @@ defmodule Dogfight.Game.EventHandler do
 
   @impl true
   def handle_cast({:apply_event, _pid, event}, state) do
-    game_state = GameState.apply_event(state.game_state, event)
-    updated_state = %{state | game_state: game_state}
-    broadcast_game_state(updated_state)
+    updated_state =
+      with {:ok, game_state} <- GameState.apply_event(state.game_state, event) do
+        updated_state = %{state | game_state: game_state}
+        broadcast_game_state(updated_state)
+        updated_state
+      else
+        e ->
+          Logger.error("Failed to apply event, reason: #{inspect(e)}")
+          state
+      end
+
     {:noreply, updated_state}
   end
 

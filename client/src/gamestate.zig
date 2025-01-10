@@ -79,6 +79,7 @@ const Vector2D = struct {
 };
 
 pub const Direction = enum {
+    idle,
     up,
     down,
     left,
@@ -86,7 +87,7 @@ pub const Direction = enum {
 
     pub fn print(self: Direction, writer: anytype) !void {
         const dir_names = [_][]const u8{
-            "up", "down", "left", "right",
+            "idle", "up", "down", "left", "right",
         };
         try writer.print("{s}", .{dir_names[@intFromEnum(self)]});
     }

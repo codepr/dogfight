@@ -7,6 +7,7 @@ const net = @import("network.zig");
 const render = @import("render.zig");
 const input = @import("input.zig");
 const event = @import("event.zig");
+const gs = @import("gamestate.zig");
 
 const server_port = 6699;
 const screen_width = 800;
@@ -43,10 +44,10 @@ pub fn main() anyerror!void {
         // Capture any input
         if (input.input()) |input_event| {
             const game_event = switch (input_event) {
-                .move_up => event.Event{ .move = event.Event.MoveEvent{ .player_id = player_id, .direction = event.Direction.up } },
-                .move_down => event.Event{ .move = event.Event.MoveEvent{ .player_id = player_id, .direction = event.Direction.down } },
-                .move_left => event.Event{ .move = event.Event.MoveEvent{ .player_id = player_id, .direction = event.Direction.left } },
-                .move_right => event.Event{ .move = event.Event.MoveEvent{ .player_id = player_id, .direction = event.Direction.right } },
+                .move_up => event.Event{ .move = event.Event.MoveEvent{ .player_id = player_id, .direction = gs.Direction.up } },
+                .move_down => event.Event{ .move = event.Event.MoveEvent{ .player_id = player_id, .direction = gs.Direction.down } },
+                .move_left => event.Event{ .move = event.Event.MoveEvent{ .player_id = player_id, .direction = gs.Direction.left } },
+                .move_right => event.Event{ .move = event.Event.MoveEvent{ .player_id = player_id, .direction = gs.Direction.right } },
                 .shoot => event.Event{ .shoot = player_id },
             };
             const buffer = try event.encode(game_event, allocator);
