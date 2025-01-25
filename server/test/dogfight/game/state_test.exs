@@ -123,5 +123,63 @@ defmodule Dogfight.Game.StateTest do
       assert first_bullet.active?
       assert first_bullet.position.y == origin_y + 18
     end
+
+    test "checks for bullet collisions" do
+      player_id_1 = "player_id_1"
+      player_id_2 = "player_id_2"
+      {:ok, game_state} = GameState.new() |> GameState.add_player(player_id_1, 18, 12)
+      {:ok, game_state} = GameState.add_player(game_state, player_id_2, 18, 24)
+
+      {:ok, game_state} = GameState.apply_event(game_state, GameEvent.move(player_id_1, :down))
+      {:ok, game_state} = GameState.apply_event(game_state, GameEvent.shoot(player_id_1))
+
+      %Dogfight.Game.DefaultSpaceship{
+        direction: :down,
+        alive?: true,
+        bullets: [
+          %Dogfight.Game.DefaultSpaceship.Bullet{
+            id: 0,
+            position: %Dogfight.Game.Vec2{y: origin_y},
+            direction: :down,
+            active?: true
+          }
+          | _bullets
+        ]
+      } = game_state.players[player_id_1]
+
+      game_state =
+        game_state
+        |> GameState.update()
+        |> GameState.update()
+        |> GameState.update()
+
+      %{alive?: alive, bullets: [first_bullet | _rest_bullets]} = game_state.players[player_id_1]
+
+      assert alive
+      refute first_bullet.active?
+      assert first_bullet.position.y == origin_y + 12
+
+      %Dogfight.Game.DefaultSpaceship{
+        direction: :idle,
+        alive?: true,
+        bullets: [
+          %Dogfight.Game.DefaultSpaceship.Bullet{
+            direction: :idle,
+            active?: false
+          }
+          | _bullets
+        ]
+      } = game_state.players[player_id_2]
+
+      game_state =
+        game_state
+        |> GameState.update()
+        |> GameState.update()
+        |> GameState.update()
+
+      %{alive?: alive} = game_state.players[player_id_2]
+
+      assert alive
+    end
   end
 end

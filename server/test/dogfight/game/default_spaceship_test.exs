@@ -107,7 +107,9 @@ defmodule Dogfight.Game.DefaultSpaceshipTest do
         |> DefaultSpaceship.update_bullets()
 
       assert hd(spaceship.bullets) == %Dogfight.Game.DefaultSpaceship.Bullet{
+               id: 0,
                position: %Dogfight.Game.Vec2{x: origin_x, y: origin_y - 6},
+               previous_position: %Dogfight.Game.Vec2{x: origin_x, y: origin_y},
                direction: :up,
                active?: true,
                boundaries: %{width: 800, height: 600}
@@ -126,7 +128,9 @@ defmodule Dogfight.Game.DefaultSpaceshipTest do
         |> DefaultSpaceship.update_bullets()
 
       assert hd(spaceship.bullets) == %Dogfight.Game.DefaultSpaceship.Bullet{
+               id: 0,
                position: %Dogfight.Game.Vec2{x: origin_x, y: origin_y + 6},
+               previous_position: %Dogfight.Game.Vec2{x: origin_x, y: origin_y},
                direction: :down,
                active?: true,
                boundaries: %{width: 800, height: 600}
@@ -145,7 +149,9 @@ defmodule Dogfight.Game.DefaultSpaceshipTest do
         |> DefaultSpaceship.update_bullets()
 
       assert hd(spaceship.bullets) == %Dogfight.Game.DefaultSpaceship.Bullet{
+               id: 0,
                position: %Dogfight.Game.Vec2{x: origin_x - 6, y: origin_y},
+               previous_position: %Dogfight.Game.Vec2{x: origin_x, y: origin_y},
                direction: :left,
                active?: true,
                boundaries: %{width: 800, height: 600}
@@ -164,7 +170,9 @@ defmodule Dogfight.Game.DefaultSpaceshipTest do
         |> DefaultSpaceship.update_bullets()
 
       assert hd(spaceship.bullets) == %Dogfight.Game.DefaultSpaceship.Bullet{
+               id: 0,
                position: %Dogfight.Game.Vec2{x: origin_x + 6, y: origin_y},
+               previous_position: %Dogfight.Game.Vec2{x: origin_x, y: origin_y},
                direction: :right,
                active?: true,
                boundaries: %{width: 800, height: 600}

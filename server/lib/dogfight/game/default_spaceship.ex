@@ -11,22 +11,26 @@ defmodule Dogfight.Game.DefaultSpaceship do
     """
 
     @type t :: %__MODULE__{
+            id: non_neg_integer(),
             position: Vec2.t(),
+            previous_position: Vec2.t(),
             direction: State.direction(),
             active?: boolean(),
             boundaries: %{width: non_neg_integer(), height: non_neg_integer()}
           }
 
-    defstruct [:position, :direction, :active?, :boundaries]
+    defstruct [:id, :position, :previous_position, :direction, :active?, :boundaries]
 
     alias Dogfight.Game.State
     alias Dogfight.Game.Vec2
 
     @bullet_base_speed 6
 
-    def new(width, height) do
+    def new(width, height, index) do
       %__MODULE__{
+        id: index,
         position: %Vec2{x: 0, y: 0},
+        previous_position: %Vec2{x: 0, y: 0},
         direction: State.idle(),
         active?: false,
         boundaries: %{width: width, height: height}
@@ -37,6 +41,8 @@ defmodule Dogfight.Game.DefaultSpaceship do
 
     def update(bullet) do
       position = bullet.position
+
+      bullet = %{bullet | previous_position: position}
 
       bullet =
         case bullet.direction do
@@ -78,27 +84,27 @@ defmodule Dogfight.Game.DefaultSpaceship do
 
   @type t :: %__MODULE__{
           position: Vec2.t(),
+          radius: non_neg_integer(),
           hp: non_neg_integer(),
           direction: State.direction(),
           alive?: boolean(),
           bullets: [Bullet.t(), ...]
         }
 
-  defstruct [:position, :hp, :direction, :alive?, :bullets]
+  defstruct [:position, :radius, :hp, :direction, :alive?, :bullets]
 
   @base_hp 5
   @base_bullet_count 5
   @base_spaceship_speed 3
 
-  def spawn(width, height) do
+  def spawn(width, height, x \\ nil, y \\ nil) do
     %__MODULE__{
-      position: Vec2.random(width, height),
+      position: if(x && y, do: %Vec2{x: x, y: y}, else: Vec2.random(width, height)),
+      radius: 2,
       direction: State.idle(),
       hp: @base_hp,
       alive?: true,
-      bullets:
-        Stream.repeatedly(fn -> __MODULE__.Bullet.new(width, height) end)
-        |> Enum.take(@base_bullet_count)
+      bullets: for(i <- 0..@base_bullet_count, do: __MODULE__.Bullet.new(width, height, i))
     }
   end
 
@@ -148,5 +154,24 @@ defmodule Dogfight.Game.DefaultSpaceship do
   @impl true
   def update_bullets(spaceship) do
     %{spaceship | bullets: Enum.map(spaceship.bullets, &__MODULE__.Bullet.update/1)}
+  end
+
+  @spec check_collision(Bullet.t(), Vec2.t()) :: boolean()
+  def check_collision(%{active: false}), do: false
+
+  def check_collision(%{position: %{x: x, y: y}}, %{x: coord_x, y: coord_y})
+      when x == coord_x and y >= coord_y,
+      do: true
+
+  def check_collision(%{position: %{x: x, y: y}}, %{x: coord_x, y: coord_y})
+      when x >= coord_x and y == coord_y,
+      do: true
+
+  def check_collision(_spaceship, _coord), do: false
+
+  def damage(%{alive?: false} = spaceship), do: spaceship
+
+  def damage(spaceship) do
+    %{spaceship | hp: spaceship.hp - 1, alive?: spaceship.hp > 1}
   end
 end
